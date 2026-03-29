@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   web:
-    image: php:8.2-apache
+    build: .
     container_name: lamp_web
     ports:
       - "80:80"
@@ -11,9 +11,15 @@ services:
       - ./php.ini:/usr/local/etc/php/php.ini
     depends_on:
       - db
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+          cpus: "0.025"
+          memswap_limit: 64m
 
   db:
-    image: mysql:8.0
+    image: mariadb:11
     container_name: lamp_db
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -22,6 +28,13 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf
+    deploy:
+      resources:
+        limits:
+          memory: 80m
+          cpus: "0.05"
+          memswap_limit: 80m
 
 volumes:
   db_data:
