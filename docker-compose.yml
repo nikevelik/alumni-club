@@ -11,12 +11,13 @@ services:
       - ./php.ini:/usr/local/etc/php/php.ini
     depends_on:
       - db
+    mem_limit: 64m
+    memswap_limit: 64m
     deploy:
       resources:
         limits:
           memory: 64m
           cpus: "0.025"
-          memswap_limit: 64m
 
   db:
     image: mariadb:11
@@ -29,12 +30,13 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./my.cnf:/etc/mysql/conf.d/my.cnf
+    mem_limit: 80m
+    memswap_limit: 80m
     deploy:
       resources:
         limits:
           memory: 80m
           cpus: "0.05"
-          memswap_limit: 80m
 
 volumes:
   db_data:
