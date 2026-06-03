@@ -41,9 +41,20 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 DELETE FROM users;
+
+CREATE TABLE IF NOT EXISTS events (
+  `id`      INT AUTO_INCREMENT PRIMARY KEY,
+  `date`    DATE NOT NULL,
+  `name`    VARCHAR(127) CHARACTER SET ascii NOT NULL,
+  `details` TEXT CHARACTER SET ascii,
+  `creator` INT NOT NULL
+);
+
+DELETE FROM events;
 SQL
 
 docker cp users.csv lamp_db:/tmp/users.csv
+docker cp events.csv lamp_db:/tmp/events.csv
 
 docker exec -i lamp_db mariadb --local-infile --user=root --password="$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" <<'SQL'
 LOAD DATA LOCAL INFILE '/tmp/users.csv'
@@ -53,6 +64,14 @@ OPTIONALLY ENCLOSED BY '"'
 LINES TERMINATED BY '\r\n'
 IGNORE 1 LINES
 (`id`, `name`, `email`, `password_hash`, `graduation_year`, `field_of_study`, `current_role`, `company`, `location`, `bio`, `profile_picture`);
+
+LOAD DATA LOCAL INFILE '/tmp/events.csv'
+INTO TABLE events
+FIELDS TERMINATED BY ','
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\r\n'
+IGNORE 1 LINES
+(`id`, `date`, `name`, `details`, `creator`);
 SQL
 
 echo "Done."

@@ -1,10 +1,11 @@
 <?php
 
 require_once __DIR__ . '/Repository.php';
+require_once __DIR__ . '/UploadHelper.php';
 
 class Service {
   const KEY_PROFILE_PICTURE = 'profile_picture';
-  const IMG_PREFIX = '/img/';
+  const IMG_PREFIX = '/uploads/';
 
   const KEY_NAME = 'name';
   const KEY_EMAIL = 'email';
@@ -16,9 +17,10 @@ class Service {
   const KEY_FIELDS = 'fields';
 
   const REQUIRED_FIELDS = ['name', 'email', 'password'];
+  // profile_picture is set via $_FILES, never as a string field — see handleUpload().
   const OPTIONAL_FIELDS = [
     'graduation_year', 'field_of_study', 'current_role',
-    'company', 'location', 'bio', 'profile_picture'
+    'company', 'location', 'bio',
   ];
 
   const ERR_MISSING_FIELDS  = 'missing_required_fields';
@@ -35,7 +37,7 @@ class Service {
 
   const PATCHABLE_FIELDS = [
     'name', 'email', 'password', 'graduation_year', 'field_of_study',
-    'current_role', 'company', 'location', 'bio', 'profile_picture',
+    'current_role', 'company', 'location', 'bio',
   ];
 
   const MIN_YEAR = 1900;
@@ -58,13 +60,10 @@ class Service {
     $users = ($query !== null && $query !== '')
       ? Repository::search($query)
       : Repository::getAll();
-    foreach ($users as &$user) {
-      $user = self::decorateUser($user);
-    }
-    return $users;
+    return array_map([self::class, 'decorateUser'], $users);
   }
 
-  public static function create($input) {
+  public static function create($input, $files = []) {
     $missing = self::findMissingFields($input, self::REQUIRED_FIELDS);
     if (!empty($missing)) {
       return self::errorWithFields(self::ERR_MISSING_FIELDS, $missing);
@@ -79,7 +78,12 @@ class Service {
       return self::error(self::ERR_EMAIL_TAKEN);
     }
 
-    $user = self::buildNewUser($input);
+    $picture = self::handleUpload($files);
+    if (is_array($picture) && isset($picture[self::KEY_ERROR])) {
+      return $picture;
+    }
+
+    $user = self::buildNewUser($input, $picture);
     $id = Repository::create($user);
     return [self::KEY_ID => (int)$id];
   }
@@ -89,42 +93,84 @@ class Service {
     if ($id === null) {
       return self::error(self::ERR_INVALID_ID);
     }
-    $rows = Repository::delete($id);
-    if ($rows === 0) {
+    $existing = Repository::get($id);
+    if (empty($existing)) {
       return self::error(self::ERR_NOT_FOUND);
+    }
+    Repository::delete($id);
+    if (!empty($existing[self::KEY_PROFILE_PICTURE])) {
+      UploadHelper::delete($existing[self::KEY_PROFILE_PICTURE]);
     }
     return [self::KEY_DELETED => $id];
   }
 
-  public static function update($input) {
+  public static function update($input, $files = []) {
     $id = self::extractId($input);
     if ($id === null) {
       return self::error(self::ERR_INVALID_ID);
     }
 
     $patch = self::collectPatchableFields($input);
-    if (empty($patch)) {
+    $picture = self::handleUpload($files);
+    if (is_array($picture) && isset($picture[self::KEY_ERROR])) {
+      return $picture;
+    }
+
+    if (empty($patch) && $picture === null) {
       return self::error(self::ERR_NO_FIELDS);
     }
 
     $validation = self::validateProfileFields($patch, false);
     if ($validation !== null) {
+      if (is_string($picture)) {
+        UploadHelper::delete($picture);
+      }
       return $validation;
     }
 
-    if (empty(Repository::get($id))) {
+    $existing = Repository::get($id);
+    if (empty($existing)) {
+      if (is_string($picture)) {
+        UploadHelper::delete($picture);
+      }
       return self::error(self::ERR_NOT_FOUND);
     }
 
     if (isset($patch[self::KEY_EMAIL]) && Repository::emailTakenByOther($patch[self::KEY_EMAIL], $id)) {
+      if (is_string($picture)) {
+        UploadHelper::delete($picture);
+      }
       return self::error(self::ERR_EMAIL_TAKEN);
     }
 
+    if (is_string($picture)) {
+      $patch[self::KEY_PROFILE_PICTURE] = $picture;
+    }
+
     Repository::update($id, self::hashPasswordField($patch));
+
+    if (is_string($picture) && !empty($existing[self::KEY_PROFILE_PICTURE])) {
+      UploadHelper::delete($existing[self::KEY_PROFILE_PICTURE]);
+    }
     return [self::KEY_UPDATED => $id];
   }
 
   // ---------- private helpers ----------
+
+  private static function handleUpload($files) {
+    if (!isset($files[self::KEY_PROFILE_PICTURE])) {
+      return null;
+    }
+    $file = $files[self::KEY_PROFILE_PICTURE];
+    if (is_array($file) && ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+      return null;
+    }
+    $result = UploadHelper::save($file);
+    if (is_array($result)) {
+      return [self::KEY_ERROR => $result['error']];
+    }
+    return $result;
+  }
 
   private static function extractId($input) {
     $id = $input[self::KEY_ID] ?? null;
@@ -185,7 +231,7 @@ class Service {
     return $patch;
   }
 
-  private static function buildNewUser($input) {
+  private static function buildNewUser($input, $picture) {
     $user = [
       self::KEY_NAME          => $input[self::KEY_NAME],
       self::KEY_EMAIL         => $input[self::KEY_EMAIL],
@@ -194,6 +240,7 @@ class Service {
     foreach (self::OPTIONAL_FIELDS as $field) {
       $user[$field] = isset($input[$field]) && $input[$field] !== '' ? $input[$field] : null;
     }
+    $user[self::KEY_PROFILE_PICTURE] = is_string($picture) ? $picture : null;
     return $user;
   }
 

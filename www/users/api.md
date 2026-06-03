@@ -25,7 +25,7 @@ Returns a single user by ID.
   "company": "InnovateX",
   "location": "Rebeccaville",
   "bio": "Feeling start grow magazine task candidate early.",
-  "profile_picture": "/img/user1.jpg"
+  "profile_picture": "/uploads/user1.svg"
 }
 ```
 
@@ -71,7 +71,7 @@ matching the column collation).
     "company": "InnovateX",
     "location": "Rebeccaville",
     "bio": "Feeling start grow magazine task candidate early.",
-    "profile_picture": "/img/user1.jpg"
+    "profile_picture": "/uploads/user1.svg"
   }
 ]
 ```
@@ -89,7 +89,8 @@ curl http://35.208.59.90/users/get_all.php
 ## POST /users/post.php
 
 Creates a new user (registration). Accepts `application/x-www-form-urlencoded` or
-`multipart/form-data` (i.e. `$_POST`).
+`multipart/form-data` (i.e. `$_POST`). Use `multipart/form-data` if uploading a
+profile picture.
 
 **Body Parameters**
 
@@ -104,7 +105,7 @@ Creates a new user (registration). Accepts `application/x-www-form-urlencoded` o
 | company          | string  | no       |                                        |
 | location         | string  | no       |                                        |
 | bio              | string  | no       |                                        |
-| profile_picture  | string  | no       | Filename only (e.g. `user42.jpg`)      |
+| profile_picture  | file    | no       | Image file (jpg/png/gif/webp/svg, max 64KB). Server stores it under `/uploads/{uuid}.{ext}`. |
 
 **Responses**
 
@@ -132,6 +133,24 @@ Creates a new user (registration). Accepts `application/x-www-form-urlencoded` o
 { "error": "invalid_graduation_year" }
 ```
 
+`400 Bad Request` — uploaded file too large (over 64KB):
+
+```json
+{ "error": "file_too_large" }
+```
+
+`400 Bad Request` — uploaded file is not an allowed image type:
+
+```json
+{ "error": "invalid_file_type" }
+```
+
+`400 Bad Request` — generic upload failure (transport / move error):
+
+```json
+{ "error": "upload_failed" }
+```
+
 `409 Conflict` — email already in use:
 
 ```json
@@ -142,10 +161,11 @@ Creates a new user (registration). Accepts `application/x-www-form-urlencoded` o
 
 ```bash
 curl -X POST http://35.208.59.90/users/post.php \
-  -d "name=Jane Doe" \
-  -d "email=jane@example.com" \
-  -d "password=hunter2" \
-  -d "graduation_year=2024"
+  -F "name=Jane Doe" \
+  -F "email=jane@example.com" \
+  -F "password=hunter2" \
+  -F "graduation_year=2024" \
+  -F "profile_picture=@./avatar.jpg"
 ```
 
 **Notes**
@@ -196,7 +216,8 @@ curl -X POST http://35.208.59.90/users/delete.php -d "id=101"
 ## POST /users/patch.php
 
 Partially updates an existing user. Only fields that are present and non-empty in
-the request are written; missing or empty fields are left unchanged.
+the request are written; missing or empty fields are left unchanged. Use
+`multipart/form-data` if uploading a new profile picture.
 
 **Body Parameters**
 
@@ -212,9 +233,9 @@ the request are written; missing or empty fields are left unchanged.
 | company          | string  | no       |                                        |
 | location         | string  | no       |                                        |
 | bio              | string  | no       |                                        |
-| profile_picture  | string  | no       | Filename only (e.g. `user42.jpg`)      |
+| profile_picture  | file    | no       | Image file (jpg/png/gif/webp/svg, max 64KB). Replaces the previous picture; the old file is deleted from disk. |
 
-At least one updatable field must be supplied alongside `id`.
+At least one updatable field (or a new picture) must be supplied alongside `id`.
 
 **Responses**
 
@@ -224,13 +245,16 @@ At least one updatable field must be supplied alongside `id`.
 { "updated": 101 }
 ```
 
-`400 Bad Request` — id missing/invalid, no fields supplied, invalid email, or invalid year:
+`400 Bad Request` — id missing/invalid, no fields supplied, invalid email, invalid year, or upload errors:
 
 ```json
 { "error": "invalid_id" }
 { "error": "no_fields_to_update" }
 { "error": "invalid_email" }
 { "error": "invalid_graduation_year" }
+{ "error": "file_too_large" }
+{ "error": "invalid_file_type" }
+{ "error": "upload_failed" }
 ```
 
 `404 Not Found` — no user with that id:
@@ -249,7 +273,8 @@ At least one updatable field must be supplied alongside `id`.
 
 ```bash
 curl -X POST http://35.208.59.90/users/patch.php \
-  -d "id=101" \
-  -d "company=NewCo" \
-  -d "location=Berlin"
+  -F "id=101" \
+  -F "company=NewCo" \
+  -F "location=Berlin" \
+  -F "profile_picture=@./new-avatar.png"
 ```

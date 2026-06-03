@@ -7,11 +7,10 @@ class Controller {
   const HTTP_CREATED     = 201;
   const HTTP_BAD_REQUEST = 400;
   const HTTP_NOT_FOUND   = 404;
-  const HTTP_CONFLICT    = 409;
 
   const ERROR_STATUS = [
-    Service::ERR_NOT_FOUND   => self::HTTP_NOT_FOUND,
-    Service::ERR_EMAIL_TAKEN => self::HTTP_CONFLICT,
+    Service::ERR_NOT_FOUND         => self::HTTP_NOT_FOUND,
+    Service::ERR_CREATOR_NOT_FOUND => self::HTTP_NOT_FOUND,
   ];
 
   const HTTP_INTERNAL_ERROR = 500;
@@ -25,16 +24,12 @@ class Controller {
     return self::respond(function () use ($request) { return Service::getAll($request); }, self::HTTP_OK);
   }
 
-  public function post($request, $files = []) {
-    return self::respond(function () use ($request, $files) { return Service::create($request, $files); }, self::HTTP_CREATED);
+  public function post($request) {
+    return self::respond(function () use ($request) { return Service::create($request); }, self::HTTP_CREATED);
   }
 
   public function delete($request) {
     return self::respond(function () use ($request) { return Service::delete($request); }, self::HTTP_OK);
-  }
-
-  public function patch($request, $files = []) {
-    return self::respond(function () use ($request, $files) { return Service::update($request, $files); }, self::HTTP_OK);
   }
 
   private static function respond($action, $okStatus) {

@@ -9,6 +9,8 @@ import urllib.parse
 import urllib.request
 import json
 import sys
+import uuid
+
 
 BASE_URL = "http://35.208.59.90"
 GET_URL = f"{BASE_URL}/users/get.php"
@@ -29,6 +31,42 @@ def post_form(url, data):
         return e.code, json.loads(e.read())
 
 
+def post_multipart(url, fields, files):
+    """POST multipart/form-data; return (status, body_dict).
+
+    fields: dict of str -> str
+    files:  dict of field_name -> (filename, content_bytes, content_type)
+    """
+    boundary = f"----pytest{uuid.uuid4().hex}"
+    body = bytearray()
+    for name, value in fields.items():
+        body += f"--{boundary}\r\n".encode()
+        body += f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode()
+        body += str(value).encode("utf-8")
+        body += b"\r\n"
+    for name, (filename, content, content_type) in files.items():
+        body += f"--{boundary}\r\n".encode()
+        body += (
+            f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'
+        ).encode()
+        body += f"Content-Type: {content_type}\r\n\r\n".encode()
+        body += content
+        body += b"\r\n"
+    body += f"--{boundary}--\r\n".encode()
+
+    req = urllib.request.Request(
+        url,
+        data=bytes(body),
+        method="POST",
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return resp.status, json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read())
+
+
 def post(data):
     return post_form(POST_URL, data)
 
@@ -39,6 +77,21 @@ def delete(data):
 
 def patch(data):
     return post_form(PATCH_URL, data)
+
+
+def post_with_file(fields, files):
+    return post_multipart(POST_URL, fields, files)
+
+
+def patch_with_file(fields, files):
+    return post_multipart(PATCH_URL, fields, files)
+
+
+# A tiny valid SVG (~120 bytes) — well under the 64KB cap.
+TINY_SVG = (
+    b'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">'
+    b'<rect width="10" height="10" fill="#000"/></svg>'
+)
 
 
 def get(user_id):
@@ -119,7 +172,7 @@ def main():
     results.append(assert_eq("status", status, 409))
     results.append(assert_eq("error", body.get("error"), "email_already_registered"))
 
-    # 5. Successful create
+    # 5. Successful create (string profile_picture is ignored — uploads only)
     print("=== 5. Successful create ===")
     unique_email = f"jane.doe.{int(time.time())}@example.com"
     status, body = post({
@@ -129,7 +182,7 @@ def main():
         "graduation_year": "2024",
         "field_of_study": "Computer Science",
         "company": "TestCo",
-        "profile_picture": "user42.jpg",
+        "profile_picture": "user42.svg",
     })
     results.append(assert_eq("status", status, 201))
     new_id = body.get("id")
@@ -150,7 +203,9 @@ def main():
         results.append(assert_eq("current_role", body.get("current_role"), None))
         results.append(assert_eq("location", body.get("location"), None))
         results.append(assert_eq("bio", body.get("bio"), None))
-        results.append(assert_eq("profile_picture", body.get("profile_picture"), "/img/user42.jpg"))
+        # No file was uploaded — string field is ignored, so column is null.
+        results.append(assert_eq("profile_picture", body.get("profile_picture"), None))
+        delete({"id": str(new_id)})
 
     # 7. GET unknown id → 404
     print("=== 7. GET nonexistent id ===")
@@ -208,7 +263,7 @@ def main():
                 results.append(assert_eq(
                     "seeded user 1 profile_picture prefixed",
                     seeded.get("profile_picture"),
-                    "/img/user1.jpg",
+                    "/uploads/user1.svg",
                 ))
 
     # 8b. GET ALL with query → substring match against email
@@ -375,6 +430,117 @@ def main():
         delete({"id": str(patch_id)})
     else:
         print("  Skipping patch round-trip — create did not return an id.")
+
+    # 22. POST with valid image upload
+    print("=== 22. POST with valid SVG upload ===")
+    unique_email = f"upload.ok.{int(time.time())}@example.com"
+    status, body = post_with_file(
+        {
+            "name": "Upload OK",
+            "email": unique_email,
+            "password": "secret",
+        },
+        {"profile_picture": ("avatar.svg", TINY_SVG, "image/svg+xml")},
+    )
+    results.append(assert_eq("create status", status, 201))
+    upload_id = body.get("id")
+    if isinstance(upload_id, int):
+        status, body = get(upload_id)
+        results.append(assert_eq("get status", status, 200))
+        pic = body.get("profile_picture", "")
+        results.append(assert_eq("picture is path", pic.startswith("/uploads/"), True))
+        results.append(assert_eq("picture has .svg ext", pic.endswith(".svg"), True))
+        # UUID-shaped name (8-4-4-4-12 hex)
+        filename = pic.rsplit("/", 1)[-1]
+        results.append(assert_eq(
+            "filename is uuid.svg",
+            len(filename) == 32 + 4 + 4,  # 32 hex + 4 dashes + ".svg"
+            True,
+        ))
+        delete({"id": str(upload_id)})
+    else:
+        print("  Skipping upload verification — no id returned.")
+
+    # 23. POST with invalid file type
+    print("=== 23. POST with invalid file type ===")
+    unique_email = f"upload.bad.{int(time.time())}@example.com"
+    status, body = post_with_file(
+        {
+            "name": "Bad Upload",
+            "email": unique_email,
+            "password": "secret",
+        },
+        {"profile_picture": ("evil.txt", b"not an image", "text/plain")},
+    )
+    results.append(assert_eq("status", status, 400))
+    results.append(assert_eq("error", body.get("error"), "invalid_file_type"))
+
+    # 24. POST with file too large (exceed 64KB cap)
+    print("=== 24. POST with oversized file ===")
+    unique_email = f"upload.big.{int(time.time())}@example.com"
+    big_payload = b"X" * (70 * 1024)  # 70KB > 64KB
+    status, body = post_with_file(
+        {
+            "name": "Big Upload",
+            "email": unique_email,
+            "password": "secret",
+        },
+        {"profile_picture": ("big.jpg", big_payload, "image/jpeg")},
+    )
+    # PHP enforces upload_max_filesize at the transport layer; either way
+    # the API surfaces it as a 400 with file_too_large.
+    results.append(assert_eq("status", status, 400))
+    results.append(assert_eq("error", body.get("error"), "file_too_large"))
+
+    # 25. PATCH with new picture replaces the old one
+    print("=== 25. PATCH replaces profile picture ===")
+    unique_email = f"upload.patch.{int(time.time())}@example.com"
+    status, body = post_with_file(
+        {"name": "Patch Pic", "email": unique_email, "password": "secret"},
+        {"profile_picture": ("first.svg", TINY_SVG, "image/svg+xml")},
+    )
+    results.append(assert_eq("create status", status, 201))
+    pp_id = body.get("id")
+    if isinstance(pp_id, int):
+        status, body = get(pp_id)
+        first_pic = body.get("profile_picture")
+        results.append(assert_eq("first pic set", isinstance(first_pic, str), True))
+
+        # Patch with a new file
+        status, body = patch_with_file(
+            {"id": str(pp_id)},
+            {"profile_picture": ("second.svg", TINY_SVG, "image/svg+xml")},
+        )
+        results.append(assert_eq("patch status", status, 200))
+
+        status, body = get(pp_id)
+        second_pic = body.get("profile_picture")
+        results.append(assert_eq("second pic set", isinstance(second_pic, str), True))
+        results.append(assert_eq("filename changed", first_pic != second_pic, True))
+
+        delete({"id": str(pp_id)})
+    else:
+        print("  Skipping patch-replace — no id returned.")
+
+    # 26. PATCH with only a file (no other fields) — must succeed
+    print("=== 26. PATCH with only a file ===")
+    unique_email = f"upload.fileonly.{int(time.time())}@example.com"
+    status, body = post({
+        "name": "File Only Patch",
+        "email": unique_email,
+        "password": "secret",
+    })
+    fo_id = body.get("id")
+    if isinstance(fo_id, int):
+        status, body = patch_with_file(
+            {"id": str(fo_id)},
+            {"profile_picture": ("only.svg", TINY_SVG, "image/svg+xml")},
+        )
+        results.append(assert_eq("status", status, 200))
+        results.append(assert_eq("updated id", body.get("updated"), fo_id))
+        delete({"id": str(fo_id)})
+    else:
+        print("  Skipping file-only patch — no id returned.")
 
     print()
     passed = sum(1 for r in results if r)
