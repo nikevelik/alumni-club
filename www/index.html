@@ -6,17 +6,429 @@
 </head>
 <body>
   <h1>Alumni Club</h1>
-  <p id="message">Loading...</p>
 
+  <p>
+    Session status:
+    <output id="session-status">unknown — log in below</output>
+  </p>
+
+  <!-- Each accordion is a native <details>; no CSS required. -->
+
+  <!-- ============== Registration ============== -->
+  <details>
+    <summary>Registration form</summary>
+    <form id="register-form">
+      <p><label>Name <input name="name" required></label></p>
+      <p><label>Email <input name="email" type="email" required></label></p>
+      <p><label>Password <input name="password" type="password" required></label></p>
+      <p><label>Graduation year <input name="graduation_year" type="number" min="1900" max="2100"></label></p>
+      <p><label>Field of study <input name="field_of_study"></label></p>
+      <p><label>Current role <input name="current_role"></label></p>
+      <p><label>Company <input name="company"></label></p>
+      <p><label>Location <input name="location"></label></p>
+      <p><label>Bio <textarea name="bio"></textarea></label></p>
+      <p><label>Profile picture <input name="profile_picture" type="file" accept="image/*"></label></p>
+      <p><button type="submit">Register</button></p>
+    </form>
+    <pre id="register-out"></pre>
+  </details>
+
+  <!-- ============== Login ============== -->
+  <details>
+    <summary>Login form</summary>
+    <form id="login-form">
+      <p><label>Email <input name="email" type="email" required></label></p>
+      <p><label>Password <input name="password" type="password" required></label></p>
+      <p><button type="submit">Log in</button></p>
+    </form>
+    <pre id="login-out"></pre>
+  </details>
+
+  <!-- ============== Logout ============== -->
+  <details>
+    <summary>Logout</summary>
+    <p><button id="logout-btn" type="button">Log out</button></p>
+    <pre id="logout-out"></pre>
+  </details>
+
+  <!-- ============== User data (fetch one) ============== -->
+  <details>
+    <summary>User data</summary>
+    <form id="get-user-form">
+      <p><label>User ID <input name="id" type="number" min="1" required></label></p>
+      <p><button type="submit">Fetch user</button></p>
+    </form>
+    <div id="get-user-out"></div>
+  </details>
+
+  <!-- ============== Edit profile ============== -->
+  <details>
+    <summary>Edit profile</summary>
+    <form id="edit-form">
+      <p><label>User ID (the user being edited) <input name="id" type="number" min="1" required></label></p>
+      <p>Leave a field blank to keep its current value.</p>
+      <p><label>Name <input name="name"></label></p>
+      <p><label>Email <input name="email" type="email"></label></p>
+      <p><label>Password <input name="password" type="password"></label></p>
+      <p><label>Graduation year <input name="graduation_year" type="number" min="1900" max="2100"></label></p>
+      <p><label>Field of study <input name="field_of_study"></label></p>
+      <p><label>Current role <input name="current_role"></label></p>
+      <p><label>Company <input name="company"></label></p>
+      <p><label>Location <input name="location"></label></p>
+      <p><label>Bio <textarea name="bio"></textarea></label></p>
+      <p><label>Profile picture <input name="profile_picture" type="file" accept="image/*"></label></p>
+      <p>
+        <button type="submit">Save changes</button>
+        <button type="button" id="edit-delete-btn">Delete this user</button>
+      </p>
+    </form>
+    <pre id="edit-out"></pre>
+  </details>
+
+  <!-- ============== All users ============== -->
+  <details>
+    <summary>All users</summary>
+    <p><button id="all-users-btn" type="button">Refresh list</button></p>
+    <div id="all-users-out"></div>
+  </details>
+
+  <!-- ============== Search users ============== -->
+  <details>
+    <summary>Search users</summary>
+    <form id="search-users-form">
+      <p><label>Email contains <input name="query" required></label></p>
+      <p><button type="submit">Search</button></p>
+    </form>
+    <div id="search-users-out"></div>
+  </details>
+
+  <!-- ============== Create event ============== -->
+  <details>
+    <summary>Create event</summary>
+    <form id="create-event-form">
+      <p><label>Date <input name="date" type="date" required></label></p>
+      <p><label>Name <input name="name" required></label></p>
+      <p><label>Details <textarea name="details"></textarea></label></p>
+      <p><label>Creator user id <input name="creator" type="number" min="1" required></label></p>
+      <p><button type="submit">Create event</button></p>
+    </form>
+    <pre id="create-event-out"></pre>
+  </details>
+
+  <!-- ============== All events ============== -->
+  <details>
+    <summary>All events</summary>
+    <p><button id="all-events-btn" type="button">Refresh list</button></p>
+    <div id="all-events-out"></div>
+  </details>
+
+  <!-- ============== Search events ============== -->
+  <details>
+    <summary>Search events</summary>
+    <form id="search-events-form">
+      <p><label>Name contains <input name="query" required></label></p>
+      <p><button type="submit">Search</button></p>
+    </form>
+    <div id="search-events-out"></div>
+  </details>
+
+  <!-- ============== Repositories ============== -->
+  <script src="ui/users_repository.js"></script>
+  <script src="ui/event_repository.js"></script>
+
+  <!-- ============== App glue ============== -->
   <script>
-    fetch('test.php')
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('message').textContent = data.message;
-      })
-      .catch(() => {
-        document.getElementById('message').textContent = 'Failed to reach server.';
+  (function () {
+    'use strict';
+
+    var Users = window.UsersRepo;
+    var Events = window.EventsRepo;
+
+    // ---------- session bookkeeping ----------
+    //
+    // The PHPSESSID cookie is the source of truth for "am I logged in?",
+    // but JS can't read HttpOnly cookies, so we mirror the user's id in
+    // localStorage on login/logout. This is purely for the UI status line
+    // and to prefill the "edit profile" form — every actual API call still
+    // relies on the cookie that the browser sends automatically.
+
+    var SESSION_KEY = 'alumni_session_user_id';
+    var statusEl = document.getElementById('session-status');
+
+    function rememberSession(userId) {
+      try { localStorage.setItem(SESSION_KEY, String(userId)); } catch (_) {}
+      renderSession();
+    }
+    function forgetSession() {
+      try { localStorage.removeItem(SESSION_KEY); } catch (_) {}
+      renderSession();
+    }
+    function rememberedUserId() {
+      try {
+        var v = localStorage.getItem(SESSION_KEY);
+        return v ? parseInt(v, 10) : null;
+      } catch (_) { return null; }
+    }
+    function renderSession() {
+      var id = rememberedUserId();
+      statusEl.textContent = id
+        ? 'logged in as user #' + id
+        : 'not logged in (cookie may still be valid — try any call)';
+    }
+
+    // ---------- helpers ----------
+
+    // Pretty-print whatever the API returned (success body or error body).
+    function show(el, value) {
+      if (typeof value === 'string') el.textContent = value;
+      else el.textContent = JSON.stringify(value, null, 2);
+    }
+
+    function showError(el, err) {
+      if (err && err.name === 'ApiError') {
+        show(el, 'HTTP ' + err.status + '\n' + JSON.stringify(err.body, null, 2));
+      } else {
+        show(el, 'Network error: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    // Build a plain object from a <form>. Empty strings become undefined so
+    // they're skipped by the repository's toFormData() (important for patch
+    // semantics — empty fields must NOT be sent).
+    function formToObject(form) {
+      var fd = new FormData(form);
+      var out = {};
+      fd.forEach(function (value, key) {
+        if (value instanceof File) return; // files are pulled separately
+        if (typeof value === 'string' && value === '') return;
+        out[key] = value;
       });
+      return out;
+    }
+
+    function fileFromForm(form, fieldName) {
+      var input = form.elements[fieldName];
+      if (!input || !input.files || input.files.length === 0) return null;
+      var f = input.files[0];
+      return f && f.size > 0 ? f : null;
+    }
+
+    function escapeHtml(s) {
+      if (s === null || s === undefined) return '';
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderUserCard(user) {
+      var img = user.profile_picture
+        ? '<img src="' + escapeHtml(Users.API_BASE + user.profile_picture) + '" alt="" width="64" height="64">'
+        : '';
+      return ''
+        + '<article>'
+        + '<h3>#' + user.id + ' — ' + escapeHtml(user.name) + '</h3>'
+        + img
+        + '<ul>'
+        + '<li>Email: ' + escapeHtml(user.email) + '</li>'
+        + '<li>Graduation year: ' + escapeHtml(user.graduation_year) + '</li>'
+        + '<li>Field of study: ' + escapeHtml(user.field_of_study) + '</li>'
+        + '<li>Current role: ' + escapeHtml(user.current_role) + '</li>'
+        + '<li>Company: ' + escapeHtml(user.company) + '</li>'
+        + '<li>Location: ' + escapeHtml(user.location) + '</li>'
+        + '<li>Bio: ' + escapeHtml(user.bio) + '</li>'
+        + '</ul>'
+        + '</article>';
+    }
+
+    function renderEventCard(ev) {
+      return ''
+        + '<article>'
+        + '<h3>#' + ev.id + ' — ' + escapeHtml(ev.name) + '</h3>'
+        + '<ul>'
+        + '<li>Date: ' + escapeHtml(ev.date) + '</li>'
+        + '<li>Details: ' + escapeHtml(ev.details) + '</li>'
+        + '<li>Creator: user #' + escapeHtml(ev.creator) + '</li>'
+        + '</ul>'
+        + '</article>';
+    }
+
+    function renderUsers(container, users) {
+      if (!Array.isArray(users) || users.length === 0) {
+        container.innerHTML = '<p>No users.</p>';
+        return;
+      }
+      container.innerHTML = users.map(renderUserCard).join('<hr>');
+    }
+
+    function renderEvents(container, events) {
+      if (!Array.isArray(events) || events.length === 0) {
+        container.innerHTML = '<p>No events.</p>';
+        return;
+      }
+      container.innerHTML = events.map(renderEventCard).join('<hr>');
+    }
+
+    // ---------- Registration ----------
+    document.getElementById('register-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var form = e.target;
+      var fields = formToObject(form);
+      var picture = fileFromForm(form, 'profile_picture');
+      var out = document.getElementById('register-out');
+      Users.createUser(fields, picture)
+        .then(function (res) {
+          show(out, res);
+          form.reset();
+        })
+        .catch(function (err) { showError(out, err); });
+    });
+
+    // ---------- Login ----------
+    document.getElementById('login-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var form = e.target;
+      var fields = formToObject(form);
+      var out = document.getElementById('login-out');
+      Users.login({ email: fields.email, password: fields.password })
+        .then(function (res) {
+          show(out, res);
+          if (res && res.id) rememberSession(res.id);
+          form.reset();
+        })
+        .catch(function (err) { showError(out, err); });
+    });
+
+    // ---------- Logout ----------
+    document.getElementById('logout-btn').addEventListener('click', function () {
+      var out = document.getElementById('logout-out');
+      Users.logout()
+        .then(function (res) {
+          show(out, res);
+          forgetSession();
+        })
+        .catch(function (err) {
+          showError(out, err);
+          // The server returning 401 not_logged_in still means we're logged
+          // out as far as the client is concerned, so clear local state too.
+          if (err && err.status === 401) forgetSession();
+        });
+    });
+
+    // ---------- Get one user ----------
+    document.getElementById('get-user-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var form = e.target;
+      var id = parseInt(form.elements.id.value, 10);
+      var out = document.getElementById('get-user-out');
+      Users.getUser(id)
+        .then(function (user) { out.innerHTML = renderUserCard(user); })
+        .catch(function (err) {
+          out.textContent = '';
+          showError(out, err);
+        });
+    });
+
+    // ---------- Edit profile ----------
+    var editForm = document.getElementById('edit-form');
+    // Prefill the id with the logged-in user, if known, as a convenience.
+    var rememberedId = rememberedUserId();
+    if (rememberedId) editForm.elements.id.value = rememberedId;
+
+    editForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var form = e.target;
+      var all = formToObject(form);
+      var id = parseInt(all.id, 10);
+      delete all.id;
+      var picture = fileFromForm(form, 'profile_picture');
+      var out = document.getElementById('edit-out');
+      Users.updateUser(id, all, picture)
+        .then(function (res) { show(out, res); })
+        .catch(function (err) { showError(out, err); });
+    });
+
+    document.getElementById('edit-delete-btn').addEventListener('click', function () {
+      var id = parseInt(editForm.elements.id.value, 10);
+      var out = document.getElementById('edit-out');
+      if (!id) { out.textContent = 'Enter a user id first.'; return; }
+      if (!confirm('Delete user #' + id + '? This cannot be undone.')) return;
+      Users.deleteUser(id)
+        .then(function (res) {
+          show(out, res);
+          // Self-delete clears the server session; reflect that locally.
+          if (rememberedUserId() === id) forgetSession();
+        })
+        .catch(function (err) { showError(out, err); });
+    });
+
+    // ---------- All users ----------
+    document.getElementById('all-users-btn').addEventListener('click', function () {
+      var out = document.getElementById('all-users-out');
+      Users.getAllUsers()
+        .then(function (users) { renderUsers(out, users); })
+        .catch(function (err) {
+          out.textContent = '';
+          showError(out, err);
+        });
+    });
+
+    // ---------- Search users ----------
+    document.getElementById('search-users-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var q = e.target.elements.query.value;
+      var out = document.getElementById('search-users-out');
+      Users.getAllUsers(q)
+        .then(function (users) { renderUsers(out, users); })
+        .catch(function (err) {
+          out.textContent = '';
+          showError(out, err);
+        });
+    });
+
+    // ---------- Create event ----------
+    document.getElementById('create-event-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var form = e.target;
+      var fields = formToObject(form);
+      var out = document.getElementById('create-event-out');
+      Events.createEvent(fields)
+        .then(function (res) {
+          show(out, res);
+          form.reset();
+        })
+        .catch(function (err) { showError(out, err); });
+    });
+
+    // ---------- All events ----------
+    document.getElementById('all-events-btn').addEventListener('click', function () {
+      var out = document.getElementById('all-events-out');
+      Events.getAllEvents()
+        .then(function (events) { renderEvents(out, events); })
+        .catch(function (err) {
+          out.textContent = '';
+          showError(out, err);
+        });
+    });
+
+    // ---------- Search events ----------
+    document.getElementById('search-events-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var q = e.target.elements.query.value;
+      var out = document.getElementById('search-events-out');
+      Events.getAllEvents(q)
+        .then(function (events) { renderEvents(out, events); })
+        .catch(function (err) {
+          out.textContent = '';
+          showError(out, err);
+        });
+    });
+
+    // ---------- bootstrap ----------
+    renderSession();
+  })();
   </script>
 </body>
 </html>
