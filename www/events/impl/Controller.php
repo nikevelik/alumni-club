@@ -17,19 +17,19 @@ class Controller {
   const ERR_INTERNAL = 'internal_error';
 
   public function get($request) {
-    return self::respond(function () use ($request) { return Service::get($request); }, self::HTTP_OK);
+    return self::respond(function () use ($request) { return Service::get(0, $request); }, self::HTTP_OK);
   }
 
   public function getAll($request = []) {
-    return self::respond(function () use ($request) { return Service::getAll($request); }, self::HTTP_OK);
+    return self::respond(function () use ($request) { return Service::getAll(0, $request); }, self::HTTP_OK);
   }
 
   public function post($request) {
-    return self::respond(function () use ($request) { return Service::create($request); }, self::HTTP_CREATED);
+    return self::respond(function () use ($request) { return Service::create(0, $request); }, self::HTTP_CREATED);
   }
 
   public function delete($request) {
-    return self::respond(function () use ($request) { return Service::delete($request); }, self::HTTP_OK);
+    return self::respond(function () use ($request) { return Service::delete(0, $request); }, self::HTTP_OK);
   }
 
   private static function respond($action, $okStatus) {

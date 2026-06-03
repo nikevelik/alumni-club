@@ -25,7 +25,7 @@ class Service {
 
   const DATE_FORMAT = 'Y-m-d';
 
-  public static function get($input) {
+  public static function get($current_user_id, $input) {
     $id = self::extractId($input);
     if ($id === null) {
       return self::error(self::ERR_INVALID_ID);
@@ -37,7 +37,7 @@ class Service {
     return self::decorateEvent($event);
   }
 
-  public static function getAll($input = []) {
+  public static function getAll($current_user_id, $input = []) {
     $query = $input[self::KEY_QUERY] ?? null;
     $events = ($query !== null && $query !== '')
       ? Repository::search($query)
@@ -45,7 +45,7 @@ class Service {
     return array_map([self::class, 'decorateEvent'], $events);
   }
 
-  public static function create($input) {
+  public static function create($current_user_id, $input) {
     $missing = self::findMissingFields($input, self::REQUIRED_FIELDS);
     if (!empty($missing)) {
       return self::errorWithFields(self::ERR_MISSING_FIELDS, $missing);
@@ -65,7 +65,7 @@ class Service {
     return [self::KEY_ID => (int)$id];
   }
 
-  public static function delete($input) {
+  public static function delete($current_user_id, $input) {
     $id = self::extractId($input);
     if ($id === null) {
       return self::error(self::ERR_INVALID_ID);

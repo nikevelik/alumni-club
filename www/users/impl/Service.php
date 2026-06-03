@@ -30,10 +30,16 @@ class Service {
   const ERR_INVALID_ID      = 'invalid_id';
   const ERR_NOT_FOUND       = 'user_not_found';
   const ERR_NO_FIELDS       = 'no_fields_to_update';
+  const ERR_INVALID_CREDENTIALS = 'invalid_credentials';
+  const ERR_NOT_LOGGED_IN       = 'not_logged_in';
 
   const KEY_DELETED = 'deleted';
   const KEY_UPDATED = 'updated';
   const KEY_QUERY = 'query';
+  const KEY_LOGGED_IN  = 'logged_in';
+  const KEY_LOGGED_OUT = 'logged_out';
+
+  const LOGIN_REQUIRED_FIELDS = ['email', 'password'];
 
   const PATCHABLE_FIELDS = [
     'name', 'email', 'password', 'graduation_year', 'field_of_study',
@@ -43,7 +49,7 @@ class Service {
   const MIN_YEAR = 1900;
   const MAX_YEAR = 2100;
 
-  public static function get($input) {
+  public static function get($current_user_id, $input) {
     $id = self::extractId($input);
     if ($id === null) {
       return self::error(self::ERR_INVALID_ID);
@@ -55,7 +61,7 @@ class Service {
     return self::decorateUser($user);
   }
 
-  public static function getAll($input = []) {
+  public static function getAll($current_user_id, $input = []) {
     $query = $input[self::KEY_QUERY] ?? null;
     $users = ($query !== null && $query !== '')
       ? Repository::search($query)
@@ -63,7 +69,7 @@ class Service {
     return array_map([self::class, 'decorateUser'], $users);
   }
 
-  public static function create($input, $files = []) {
+  public static function create($current_user_id, $input, $files = []) {
     $missing = self::findMissingFields($input, self::REQUIRED_FIELDS);
     if (!empty($missing)) {
       return self::errorWithFields(self::ERR_MISSING_FIELDS, $missing);
@@ -88,7 +94,7 @@ class Service {
     return [self::KEY_ID => (int)$id];
   }
 
-  public static function delete($input) {
+  public static function delete($current_user_id, $input) {
     $id = self::extractId($input);
     if ($id === null) {
       return self::error(self::ERR_INVALID_ID);
@@ -104,7 +110,7 @@ class Service {
     return [self::KEY_DELETED => $id];
   }
 
-  public static function update($input, $files = []) {
+  public static function update($current_user_id, $input, $files = []) {
     $id = self::extractId($input);
     if ($id === null) {
       return self::error(self::ERR_INVALID_ID);
@@ -153,6 +159,28 @@ class Service {
       UploadHelper::delete($existing[self::KEY_PROFILE_PICTURE]);
     }
     return [self::KEY_UPDATED => $id];
+  }
+
+  public static function login($current_user_id, $input) {
+    $missing = self::findMissingFields($input, self::LOGIN_REQUIRED_FIELDS);
+    if (!empty($missing)) {
+      return self::errorWithFields(self::ERR_MISSING_FIELDS, $missing);
+    }
+    $row = Repository::getByEmail($input[self::KEY_EMAIL]);
+    if (empty($row) || !hash_equals($row[self::KEY_PASSWORD_HASH], self::hashPassword($input[self::KEY_PASSWORD]))) {
+      return self::error(self::ERR_INVALID_CREDENTIALS);
+    }
+    return [
+      self::KEY_ID         => (int)$row[self::KEY_ID],
+      self::KEY_LOGGED_IN  => true,
+    ];
+  }
+
+  public static function logout($current_user_id, $input = []) {
+    if ((int)$current_user_id <= 0) {
+      return self::error(self::ERR_NOT_LOGGED_IN);
+    }
+    return [self::KEY_LOGGED_OUT => (int)$current_user_id];
   }
 
   // ---------- private helpers ----------

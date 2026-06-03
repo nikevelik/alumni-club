@@ -278,3 +278,74 @@ curl -X POST http://35.208.59.90/users/patch.php \
   -F "location=Berlin" \
   -F "profile_picture=@./new-avatar.png"
 ```
+
+---
+
+## POST /users/login.php
+
+Authenticates a user and starts a PHP session. The session id is set in the
+`PHPSESSID` cookie (`HttpOnly`, `SameSite=Lax`, `Secure` over HTTPS). Subsequent
+endpoints that read `$_SESSION['user_id']` will see the logged-in user.
+
+**Body Parameters**
+
+| Parameter | Type   | Required | Description                  |
+|-----------|--------|----------|------------------------------|
+| email     | string | yes      | The user's email             |
+| password  | string | yes      | Plain password (hashed server-side and compared) |
+
+**Responses**
+
+`200 OK` — success. The session cookie is set on the response:
+
+```json
+{ "id": 101, "logged_in": true }
+```
+
+`400 Bad Request` — missing required fields:
+
+```json
+{ "error": "missing_required_fields", "fields": ["email", "password"] }
+```
+
+`401 Unauthorized` — email not found or password mismatch (single error code,
+no enumeration):
+
+```json
+{ "error": "invalid_credentials" }
+```
+
+**Example**
+
+```bash
+curl -c cookies.txt -X POST http://35.208.59.90/users/login.php \
+  -d "email=jane@example.com" \
+  -d "password=hunter2"
+```
+
+---
+
+## POST /users/logout.php
+
+Clears the current PHP session and expires the session cookie. The current
+user id is read from `$_SESSION['user_id']`; no body parameters are required.
+
+**Responses**
+
+`200 OK` — success:
+
+```json
+{ "logged_out": 101 }
+```
+
+`401 Unauthorized` — no active session:
+
+```json
+{ "error": "not_logged_in" }
+```
+
+**Example**
+
+```bash
+curl -b cookies.txt -X POST http://35.208.59.90/users/logout.php
+```

@@ -8,6 +8,7 @@ class Repository {
   const SEARCH_SQL = 'SELECT `id`, `name`, `email`, `graduation_year`, `field_of_study`, `current_role`, `company`, `location`, `bio`, `profile_picture` FROM `users` WHERE `email` LIKE ? ORDER BY `id`';
   const INSERT_SQL = 'INSERT INTO `users` (`name`, `email`, `password_hash`, `graduation_year`, `field_of_study`, `current_role`, `company`, `location`, `bio`, `profile_picture`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
   const EMAIL_EXISTS_SQL = 'SELECT `id` FROM `users` WHERE `email` = ?';
+  const GET_BY_EMAIL_SQL = 'SELECT `id`, `password_hash` FROM `users` WHERE `email` = ?';
   const DELETE_SQL = 'DELETE FROM `users` WHERE `id` = ?';
   const UPDATABLE_COLUMNS = [
     'name', 'email', 'password_hash', 'graduation_year', 'field_of_study',
@@ -33,6 +34,10 @@ class Repository {
 
   public static function emailTakenByOther($email, $id) {
     return !empty(SQLHelper::queryOne(self::EMAIL_TAKEN_BY_OTHER_SQL, [$email, $id]));
+  }
+
+  public static function getByEmail($email) {
+    return SQLHelper::queryOne(self::GET_BY_EMAIL_SQL, [$email]);
   }
 
   public static function create($user) {
