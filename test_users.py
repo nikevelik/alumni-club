@@ -2,22 +2,41 @@
 """
 End-to-end tests for the /users/ endpoints.
 Run: python3 test_users.py
+
+Auth model: every endpoint except POST /users/post.php (registration) and
+POST /users/login.php is gated behind a session cookie. Tests register a
+throwaway account, log in, and run all gated assertions through that
+authenticated session. The cookie is held in a CookieJar bound to the global
+opener so urlopen() carries it on every request automatically.
 """
 
-import time
-import urllib.parse
-import urllib.request
+import http.cookiejar
 import json
 import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 import uuid
 
 
 BASE_URL = "http://35.208.59.90"
-GET_URL = f"{BASE_URL}/users/get.php"
-GET_ALL_URL = f"{BASE_URL}/users/get_all.php"
-POST_URL = f"{BASE_URL}/users/post.php"
-DELETE_URL = f"{BASE_URL}/users/delete.php"
-PATCH_URL = f"{BASE_URL}/users/patch.php"
+GET_URL      = f"{BASE_URL}/users/get.php"
+GET_ALL_URL  = f"{BASE_URL}/users/get_all.php"
+POST_URL     = f"{BASE_URL}/users/post.php"
+DELETE_URL   = f"{BASE_URL}/users/delete.php"
+PATCH_URL    = f"{BASE_URL}/users/patch.php"
+LOGIN_URL    = f"{BASE_URL}/users/login.php"
+LOGOUT_URL   = f"{BASE_URL}/users/logout.php"
+
+
+# Single CookieJar shared across all requests. Re-installing on the global
+# opener is what makes urllib.request.urlopen() send the PHPSESSID cookie back
+# automatically once login.php sets it.
+COOKIE_JAR = http.cookiejar.CookieJar()
+urllib.request.install_opener(
+    urllib.request.build_opener(urllib.request.HTTPCookieProcessor(COOKIE_JAR))
+)
 
 
 def post_form(url, data):
@@ -67,6 +86,16 @@ def post_multipart(url, fields, files):
         return e.code, json.loads(e.read())
 
 
+def get_url(url):
+    """GET an arbitrary URL; return (status, body)."""
+    req = urllib.request.Request(url)
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return resp.status, json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read())
+
+
 def post(data):
     return post_form(POST_URL, data)
 
@@ -77,6 +106,14 @@ def delete(data):
 
 def patch(data):
     return post_form(PATCH_URL, data)
+
+
+def login(email, password):
+    return post_form(LOGIN_URL, {"email": email, "password": password})
+
+
+def logout():
+    return post_form(LOGOUT_URL, {})
 
 
 def post_with_file(fields, files):
@@ -96,13 +133,7 @@ TINY_SVG = (
 
 def get(user_id):
     """GET /users/get.php?id=...; return (status, body_dict)."""
-    url = f"{GET_URL}?id={urllib.parse.quote(str(user_id))}"
-    req = urllib.request.Request(url)
-    try:
-        with urllib.request.urlopen(req) as resp:
-            return resp.status, json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read())
+    return get_url(f"{GET_URL}?id={urllib.parse.quote(str(user_id))}")
 
 
 def get_all(query=None):
@@ -110,12 +141,12 @@ def get_all(query=None):
     url = GET_ALL_URL
     if query is not None:
         url = f"{GET_ALL_URL}?query={urllib.parse.quote(str(query))}"
-    req = urllib.request.Request(url)
-    try:
-        with urllib.request.urlopen(req) as resp:
-            return resp.status, json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read())
+    return get_url(url)
+
+
+def clear_cookies():
+    """Drop all cookies — used to simulate a logged-out client."""
+    COOKIE_JAR.clear()
 
 
 def assert_eq(label, actual, expected):
@@ -129,6 +160,8 @@ def assert_eq(label, actual, expected):
 
 def main():
     results = []
+
+    # ---------- Phase A: unauthenticated tests (registration is public) ----------
 
     # 1. Missing required fields
     print("=== 1. Missing required fields ===")
@@ -171,6 +204,73 @@ def main():
     })
     results.append(assert_eq("status", status, 409))
     results.append(assert_eq("error", body.get("error"), "email_already_registered"))
+
+    # ---------- Phase B: auth-gate checks (no session yet) ----------
+
+    # A1. Auth gate: GET /users/get.php without session → 401
+    print("=== A1. GET without session → 401 ===")
+    status, body = get(1)
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "not_logged_in"))
+
+    # A2. Auth gate: GET /users/get_all.php without session → 401
+    print("=== A2. GET ALL without session → 401 ===")
+    status, body = get_all()
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "not_logged_in"))
+
+    # A3. Auth gate: POST /users/patch.php without session → 401
+    print("=== A3. PATCH without session → 401 ===")
+    status, body = patch({"id": "1", "name": "Anything"})
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "not_logged_in"))
+
+    # A4. Auth gate: POST /users/delete.php without session → 401
+    print("=== A4. DELETE without session → 401 ===")
+    status, body = delete({"id": "1"})
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "not_logged_in"))
+
+    # A5. Logout with no session → 401 not_logged_in
+    print("=== A5. logout without session → 401 ===")
+    status, body = logout()
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "not_logged_in"))
+
+    # A6. Login with bad credentials → 401 invalid_credentials
+    print("=== A6. login with bad password → 401 ===")
+    status, body = login("thomasjonathan@example.net", "definitely-wrong-pw")
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "invalid_credentials"))
+
+    # A7. Login with missing fields → 400 missing_required_fields
+    print("=== A7. login with missing fields ===")
+    status, body = post_form(LOGIN_URL, {})
+    results.append(assert_eq("status", status, 400))
+    results.append(assert_eq("error", body.get("error"), "missing_required_fields"))
+
+    # ---------- Phase C: register + login a test account ----------
+
+    print("=== Setup. Register + login test account ===")
+    test_email = f"runner.{int(time.time())}.{uuid.uuid4().hex[:8]}@example.com"
+    test_password = "test-pw-" + uuid.uuid4().hex
+    status, body = post({
+        "name": "Test Runner",
+        "email": test_email,
+        "password": test_password,
+    })
+    results.append(assert_eq("setup register status", status, 201))
+    runner_id = body.get("id")
+    if not isinstance(runner_id, int):
+        print("FATAL: could not register the test runner account; aborting.")
+        sys.exit(1)
+
+    status, body = login(test_email, test_password)
+    results.append(assert_eq("setup login status", status, 200))
+    results.append(assert_eq("setup login flag", body.get("logged_in"), True))
+    results.append(assert_eq("setup login id", body.get("id"), runner_id))
+
+    # ---------- Phase D: gated tests, run with the session cookie ----------
 
     # 5. Successful create (string profile_picture is ignored — uploads only)
     print("=== 5. Successful create ===")
@@ -541,6 +641,35 @@ def main():
         delete({"id": str(fo_id)})
     else:
         print("  Skipping file-only patch — no id returned.")
+
+    # ---------- Phase E: logout tests + cleanup ----------
+
+    # L1. Logout while logged in → 200 logged_out
+    print("=== L1. logout while logged in ===")
+    status, body = logout()
+    results.append(assert_eq("status", status, 200))
+    results.append(assert_eq("logged_out id", body.get("logged_out"), runner_id))
+
+    # L2. After logout, gated endpoint goes back to 401
+    print("=== L2. GET after logout → 401 ===")
+    status, body = get(1)
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "not_logged_in"))
+
+    # Cleanup: log back in to delete the runner account. Self-deletion is
+    # expected to clear the server-side session as a side-effect — verify
+    # that a follow-up gated request returns 401 without us having to call
+    # logout() explicitly.
+    print("=== Cleanup. log back in + delete runner ===")
+    status, body = login(test_email, test_password)
+    results.append(assert_eq("cleanup login status", status, 200))
+    status, body = delete({"id": str(runner_id)})
+    results.append(assert_eq("cleanup delete status", status, 200))
+
+    print("=== L3. self-delete cleared the session → 401 ===")
+    status, body = get(1)
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "not_logged_in"))
 
     print()
     passed = sum(1 for r in results if r)

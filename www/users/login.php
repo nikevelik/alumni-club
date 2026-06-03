@@ -5,8 +5,8 @@ require_once __DIR__ . '/impl/SessionHelper.php';
 
 header('Content-Type: application/json');
 
-SessionHelper::start();
-
+// Controller's constructor calls SessionHelper::start() so $_SESSION is live
+// by the time we read the response.
 $controller = new Controller();
 $body = $controller->login($_POST);
 $result = json_decode($body, true);

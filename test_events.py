@@ -2,28 +2,63 @@
 """
 End-to-end tests for the /events/ endpoints.
 Run: python3 test_events.py
+
+Auth model: every events endpoint is gated behind a session cookie. Tests
+register a throwaway account via /users/post.php (which is public), log in
+via /users/login.php, and run all event assertions through that authenticated
+session. The cookie is held in a CookieJar bound to the global opener so
+urlopen() carries it on every request automatically.
 """
 
-import time
-import urllib.parse
-import urllib.request
+import http.cookiejar
 import json
 import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+import uuid
+
 
 BASE_URL = "http://35.208.59.90"
-GET_URL = f"{BASE_URL}/events/get.php"
-GET_ALL_URL = f"{BASE_URL}/events/get_all.php"
-POST_URL = f"{BASE_URL}/events/post.php"
-DELETE_URL = f"{BASE_URL}/events/delete.php"
+GET_URL       = f"{BASE_URL}/events/get.php"
+GET_ALL_URL   = f"{BASE_URL}/events/get_all.php"
+POST_URL      = f"{BASE_URL}/events/post.php"
+DELETE_URL    = f"{BASE_URL}/events/delete.php"
+USERS_POST    = f"{BASE_URL}/users/post.php"
+USERS_DELETE  = f"{BASE_URL}/users/delete.php"
+LOGIN_URL     = f"{BASE_URL}/users/login.php"
+LOGOUT_URL    = f"{BASE_URL}/users/logout.php"
 
-# Seeded user 1 — used as the creator for test events.
+# Seeded user 1 — used as the creator for test events. Note that with auth
+# in place, the *requester* is the logged-in test runner; the `creator` field
+# is a separate parameter that just has to reference an existing user row.
 SEEDED_CREATOR_ID = 1
+
+
+# Single CookieJar shared across all requests. Re-installing on the global
+# opener is what makes urllib.request.urlopen() send the PHPSESSID cookie back
+# automatically once login.php sets it.
+COOKIE_JAR = http.cookiejar.CookieJar()
+urllib.request.install_opener(
+    urllib.request.build_opener(urllib.request.HTTPCookieProcessor(COOKIE_JAR))
+)
 
 
 def post_form(url, data):
     """POST form-encoded data; return (status, body_dict)."""
     encoded = urllib.parse.urlencode(data).encode("utf-8")
     req = urllib.request.Request(url, data=encoded, method="POST")
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return resp.status, json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read())
+
+
+def get_url(url):
+    """GET an arbitrary URL; return (status, body)."""
+    req = urllib.request.Request(url)
     try:
         with urllib.request.urlopen(req) as resp:
             return resp.status, json.loads(resp.read())
@@ -39,15 +74,17 @@ def delete(data):
     return post_form(DELETE_URL, data)
 
 
+def login(email, password):
+    return post_form(LOGIN_URL, {"email": email, "password": password})
+
+
+def logout():
+    return post_form(LOGOUT_URL, {})
+
+
 def get(event_id):
     """GET /events/get.php?id=...; return (status, body_dict)."""
-    url = f"{GET_URL}?id={urllib.parse.quote(str(event_id))}"
-    req = urllib.request.Request(url)
-    try:
-        with urllib.request.urlopen(req) as resp:
-            return resp.status, json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read())
+    return get_url(f"{GET_URL}?id={urllib.parse.quote(str(event_id))}")
 
 
 def get_all(query=None):
@@ -55,12 +92,7 @@ def get_all(query=None):
     url = GET_ALL_URL
     if query is not None:
         url = f"{GET_ALL_URL}?query={urllib.parse.quote(str(query))}"
-    req = urllib.request.Request(url)
-    try:
-        with urllib.request.urlopen(req) as resp:
-            return resp.status, json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read())
+    return get_url(url)
 
 
 def assert_eq(label, actual, expected):
@@ -74,6 +106,58 @@ def assert_eq(label, actual, expected):
 
 def main():
     results = []
+
+    # ---------- Phase A: auth-gate checks (no session yet) ----------
+
+    # A1. GET /events/get.php without session → 401
+    print("=== A1. GET without session → 401 ===")
+    status, body = get(1)
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "not_logged_in"))
+
+    # A2. GET /events/get_all.php without session → 401
+    print("=== A2. GET ALL without session → 401 ===")
+    status, body = get_all()
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "not_logged_in"))
+
+    # A3. POST /events/post.php without session → 401
+    print("=== A3. POST without session → 401 ===")
+    status, body = post({
+        "date": "2026-09-15",
+        "name": "Should Not Pass",
+        "creator": str(SEEDED_CREATOR_ID),
+    })
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "not_logged_in"))
+
+    # A4. POST /events/delete.php without session → 401
+    print("=== A4. DELETE without session → 401 ===")
+    status, body = delete({"id": "1"})
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "not_logged_in"))
+
+    # ---------- Phase B: register + login a test runner ----------
+
+    print("=== Setup. Register + login test runner ===")
+    test_email = f"events.runner.{int(time.time())}.{uuid.uuid4().hex[:8]}@example.com"
+    test_password = "test-pw-" + uuid.uuid4().hex
+    status, body = post_form(USERS_POST, {
+        "name": "Events Test Runner",
+        "email": test_email,
+        "password": test_password,
+    })
+    results.append(assert_eq("setup register status", status, 201))
+    runner_id = body.get("id")
+    if not isinstance(runner_id, int):
+        print("FATAL: could not register the test runner account; aborting.")
+        sys.exit(1)
+
+    status, body = login(test_email, test_password)
+    results.append(assert_eq("setup login status", status, 200))
+    results.append(assert_eq("setup login flag", body.get("logged_in"), True))
+
+    # ---------- Phase C: gated tests, run with the session cookie ----------
 
     # 1. Missing required fields
     print("=== 1. Missing required fields ===")
@@ -291,6 +375,27 @@ def main():
         results.append(assert_eq("re-delete error", body.get("error"), "event_not_found"))
     else:
         print("  Skipping delete round-trip — create did not return an id.")
+
+    # ---------- Phase D: post-logout gate check + cleanup ----------
+
+    # L1. Logout → 200
+    print("=== L1. logout while logged in ===")
+    status, body = logout()
+    results.append(assert_eq("status", status, 200))
+    results.append(assert_eq("logged_out id", body.get("logged_out"), runner_id))
+
+    # L2. After logout, an events endpoint goes back to 401
+    print("=== L2. GET ALL after logout → 401 ===")
+    status, body = get_all()
+    results.append(assert_eq("status", status, 401))
+    results.append(assert_eq("error", body.get("error"), "not_logged_in"))
+
+    # Cleanup: log back in and delete the runner account.
+    print("=== Cleanup. log back in + delete runner ===")
+    status, body = login(test_email, test_password)
+    results.append(assert_eq("cleanup login status", status, 200))
+    status, body = post_form(USERS_DELETE, {"id": str(runner_id)})
+    results.append(assert_eq("cleanup delete status", status, 200))
 
     print()
     passed = sum(1 for r in results if r)

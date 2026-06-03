@@ -22,6 +22,7 @@ class Service {
   const ERR_INVALID_ID        = 'invalid_id';
   const ERR_NOT_FOUND         = 'event_not_found';
   const ERR_CREATOR_NOT_FOUND = 'creator_not_found';
+  const ERR_NOT_LOGGED_IN     = 'not_logged_in';
 
   const DATE_FORMAT = 'Y-m-d';
 

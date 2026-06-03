@@ -1,5 +1,27 @@
 # Events API
 
+## Authentication
+
+Every endpoint on this API is gated behind a session — the caller must have
+logged in via [`POST /users/login.php`](../users/api.md#post-userslogphp) and
+must include the resulting `PHPSESSID` cookie in every request. Otherwise the
+endpoint short-circuits before reaching any business logic and returns:
+
+`401 Unauthorized`:
+
+```json
+{ "error": "not_logged_in" }
+```
+
+`curl` users typically hold the cookie in a jar:
+
+```bash
+curl -c cookies.txt -X POST http://35.208.59.90/users/login.php -d "email=…" -d "password=…"
+curl -b cookies.txt http://35.208.59.90/events/get_all.php
+```
+
+---
+
 ## GET /events/get.php
 
 Returns a single event by ID.

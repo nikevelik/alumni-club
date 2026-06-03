@@ -1,5 +1,39 @@
 # Users API
 
+## Authentication
+
+Most endpoints below require an active session: the caller must have logged in
+via `POST /users/login.php` and must include the resulting `PHPSESSID` cookie
+in every subsequent request.
+
+| Endpoint                  | Auth required? |
+|---------------------------|----------------|
+| `POST /users/login.php`   | no — public    |
+| `POST /users/post.php`    | no — registration is open to anonymous visitors |
+| `POST /users/logout.php`  | implicit — returns `401 not_logged_in` if no session |
+| `GET /users/get.php`      | yes            |
+| `GET /users/get_all.php`  | yes            |
+| `POST /users/patch.php`   | yes            |
+| `POST /users/delete.php`  | yes            |
+
+Gated endpoints short-circuit before reaching any business logic when no
+session is present and return:
+
+`401 Unauthorized`:
+
+```json
+{ "error": "not_logged_in" }
+```
+
+`curl` users typically hold the cookie in a jar:
+
+```bash
+curl -c cookies.txt -X POST http://35.208.59.90/users/login.php -d "email=…" -d "password=…"
+curl -b cookies.txt "http://35.208.59.90/users/get.php?id=1"
+```
+
+---
+
 ## GET /users/get.php
 
 Returns a single user by ID.
@@ -179,6 +213,11 @@ curl -X POST http://35.208.59.90/users/post.php \
 
 Deletes a user by ID. Hard delete — the row is removed from the `users` table.
 
+**Self-delete:** if the deleted id matches the currently logged-in user
+(`$_SESSION['user_id']`), the server clears the session and expires the
+`PHPSESSID` cookie as part of the response. The client is effectively logged
+out — subsequent gated requests will return `401 not_logged_in`.
+
 **Body Parameters**
 
 | Parameter | Type    | Required | Description                                |
@@ -208,7 +247,7 @@ Deletes a user by ID. Hard delete — the row is removed from the `users` table.
 **Example**
 
 ```bash
-curl -X POST http://35.208.59.90/users/delete.php -d "id=101"
+curl -b cookies.txt -X POST http://35.208.59.90/users/delete.php -d "id=101"
 ```
 
 ---
