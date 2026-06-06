@@ -114,16 +114,7 @@ document.getElementById('edit-delete-btn').addEventListener('click', () => {
     .catch(err => showError(out, err));
 });
 
-// ---------- All users ----------
-
-document.getElementById('all-users-btn').addEventListener('click', () => {
-  const out = document.getElementById('all-users-out');
-  Users.getAllUsers()
-    .then(users => renderUsers(out, users))
-    .catch(err => { out.textContent = ''; showError(out, err); });
-});
-
-// ---------- Search users ----------
+// ---------- Users ----------
 
 document.getElementById('search-users-form').addEventListener('submit', e => {
   e.preventDefault();
