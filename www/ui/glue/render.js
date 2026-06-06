@@ -43,13 +43,14 @@ export function renderUserCard(user) {
 }
 
 export function renderEventCard(ev) {
-  return `<article>
+  return `<article data-event-id="${ev.id}">
     <h3>#${ev.id} — ${escapeHtml(ev.name)}</h3>
     <ul>
       <li>Date: ${escapeHtml(ev.date)}</li>
       <li>Details: ${escapeHtml(ev.details)}</li>
       <li>Creator: user #${escapeHtml(ev.creator)}</li>
     </ul>
+    <button type="button" class="btn-danger delete-event-btn">Delete</button>
   </article>`;
 }
 

@@ -145,5 +145,16 @@ document.getElementById('search-events-form').addEventListener('submit', e => {
     .catch(err => { out.textContent = ''; showError(out, err); });
 });
 
+document.getElementById('search-events-out').addEventListener('click', e => {
+  const btn = e.target.closest('.delete-event-btn');
+  if (!btn) return;
+  const id = parseInt(btn.closest('article').dataset.eventId, 10);
+  if (!confirm(`Delete event #${id}? This cannot be undone.`)) return;
+  const out = document.getElementById('search-events-out');
+  Events.deleteEvent(id)
+    .then(res => show(out, res))
+    .catch(err => showError(out, err));
+});
+
 // ---------- bootstrap ----------
 renderSession();
