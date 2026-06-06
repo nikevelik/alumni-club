@@ -12,10 +12,11 @@
     <output id="session-status">unknown — log in below</output>
   </p>
 
-  <!-- Each accordion is a native <details>; no CSS required. -->
+  <!-- Each accordion is a native <details>; the shared name attribute ensures
+       only one can be open at a time, with no JS required. -->
 
   <!-- ============== Registration ============== -->
-  <details>
+  <details name="accordion">
     <summary>Registration form</summary>
     <form id="register-form">
       <p><label>Name <input name="name" required></label></p>
@@ -34,7 +35,7 @@
   </details>
 
   <!-- ============== Login ============== -->
-  <details>
+  <details name="accordion">
     <summary>Login form</summary>
     <form id="login-form">
       <p><label>Email <input name="email" type="email" required></label></p>
@@ -45,14 +46,14 @@
   </details>
 
   <!-- ============== Logout ============== -->
-  <details>
+  <details name="accordion">
     <summary>Logout</summary>
     <p><button id="logout-btn" type="button">Log out</button></p>
     <pre id="logout-out"></pre>
   </details>
 
   <!-- ============== User data (fetch one) ============== -->
-  <details>
+  <details name="accordion">
     <summary>User data</summary>
     <form id="get-user-form">
       <p><label>User ID <input name="id" type="number" min="1" required></label></p>
@@ -62,7 +63,7 @@
   </details>
 
   <!-- ============== Edit profile ============== -->
-  <details>
+  <details name="accordion">
     <summary>Edit profile</summary>
     <form id="edit-form">
       <p><label>User ID (the user being edited) <input name="id" type="number" min="1" required></label></p>
@@ -86,14 +87,14 @@
   </details>
 
   <!-- ============== All users ============== -->
-  <details>
+  <details name="accordion">
     <summary>All users</summary>
     <p><button id="all-users-btn" type="button">Refresh list</button></p>
     <div id="all-users-out"></div>
   </details>
 
   <!-- ============== Search users ============== -->
-  <details>
+  <details name="accordion">
     <summary>Search users</summary>
     <form id="search-users-form">
       <p><label>Email contains <input name="query" required></label></p>
@@ -103,7 +104,7 @@
   </details>
 
   <!-- ============== Create event ============== -->
-  <details>
+  <details name="accordion">
     <summary>Create event</summary>
     <form id="create-event-form">
       <p><label>Date <input name="date" type="date" required></label></p>
@@ -116,14 +117,14 @@
   </details>
 
   <!-- ============== All events ============== -->
-  <details>
+  <details name="accordion">
     <summary>All events</summary>
     <p><button id="all-events-btn" type="button">Refresh list</button></p>
     <div id="all-events-out"></div>
   </details>
 
   <!-- ============== Search events ============== -->
-  <details>
+  <details name="accordion">
     <summary>Search events</summary>
     <form id="search-events-form">
       <p><label>Name contains <input name="query" required></label></p>
