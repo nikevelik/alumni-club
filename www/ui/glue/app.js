@@ -135,16 +135,7 @@ document.getElementById('create-event-form').addEventListener('submit', e => {
     .catch(err => showError(out, err));
 });
 
-// ---------- All events ----------
-
-document.getElementById('all-events-btn').addEventListener('click', () => {
-  const out = document.getElementById('all-events-out');
-  Events.getAllEvents()
-    .then(events => renderEvents(out, events))
-    .catch(err => { out.textContent = ''; showError(out, err); });
-});
-
-// ---------- Search events ----------
+// ---------- Events ----------
 
 document.getElementById('search-events-form').addEventListener('submit', e => {
   e.preventDefault();
