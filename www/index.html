@@ -2,21 +2,144 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Alumni Club</title>
+  <link rel="stylesheet" href="ui/style/styles.css">
 </head>
 <body>
-  <h1>Alumni Club</h1>
-  <p id="message">Loading...</p>
+  <header>
+    <h1>Alumni Club</h1>
+    <p class="session-status">
+      Session status:
+      <output id="session-status">unknown — log in below</output>
+    </p>
+  </header>
 
-  <script>
-    fetch('test.php')
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('message').textContent = data.message;
-      })
-      .catch(() => {
-        document.getElementById('message').textContent = 'Failed to reach server.';
-      });
-  </script>
+  <main>
+    <!-- Each accordion is a native <details>; the shared name attribute ensures
+         only one can be open at a time, with no JS required. -->
+
+    <!-- ============== Registration ============== -->
+    <details name="accordion" class="panel">
+      <summary>Registration form</summary>
+      <div class="panel-body">
+        <form id="register-form">
+          <p><label>Name <input name="name" required></label></p>
+          <p><label>Email <input name="email" type="email" required></label></p>
+          <p><label>Password <input name="password" type="password" required></label></p>
+          <p><label>Graduation year <input name="graduation_year" type="number" min="1900" max="2100"></label></p>
+          <p><label>Field of study <input name="field_of_study"></label></p>
+          <p><label>Current role <input name="current_role"></label></p>
+          <p><label>Company <input name="company"></label></p>
+          <p><label>Location <input name="location"></label></p>
+          <p><label>Bio <textarea name="bio"></textarea></label></p>
+          <p><label>Profile picture <input name="profile_picture" type="file" accept="image/*"></label></p>
+          <p><button type="submit">Register</button></p>
+        </form>
+        <pre id="register-out" class="output"></pre>
+      </div>
+    </details>
+
+    <!-- ============== Login ============== -->
+    <details name="accordion" class="panel">
+      <summary>Login form</summary>
+      <div class="panel-body">
+        <form id="login-form">
+          <p><label>Email <input name="email" type="email" required></label></p>
+          <p><label>Password <input name="password" type="password" required></label></p>
+          <p><button type="submit">Log in</button></p>
+        </form>
+        <pre id="login-out" class="output"></pre>
+      </div>
+    </details>
+
+    <!-- ============== Logout ============== -->
+    <details name="accordion" class="panel">
+      <summary>Logout</summary>
+      <div class="panel-body">
+        <p><button id="logout-btn" type="button">Log out</button></p>
+        <pre id="logout-out" class="output"></pre>
+      </div>
+    </details>
+
+    <!-- ============== User data (fetch one) ============== -->
+    <details name="accordion" class="panel">
+      <summary>User data</summary>
+      <div class="panel-body">
+        <form id="get-user-form">
+          <p><label>User ID <input name="id" type="number" min="1" required></label></p>
+          <p><button type="submit">Fetch user</button></p>
+        </form>
+        <div id="get-user-out" class="output"></div>
+      </div>
+    </details>
+
+    <!-- ============== Edit profile ============== -->
+    <details name="accordion" class="panel">
+      <summary>Edit profile</summary>
+      <div class="panel-body">
+        <form id="edit-form">
+          <p><label>User ID (the user being edited) <input name="id" type="number" min="1" required></label></p>
+          <p>Leave a field blank to keep its current value.</p>
+          <p><label>Name <input name="name"></label></p>
+          <p><label>Email <input name="email" type="email"></label></p>
+          <p><label>Password <input name="password" type="password"></label></p>
+          <p><label>Graduation year <input name="graduation_year" type="number" min="1900" max="2100"></label></p>
+          <p><label>Field of study <input name="field_of_study"></label></p>
+          <p><label>Current role <input name="current_role"></label></p>
+          <p><label>Company <input name="company"></label></p>
+          <p><label>Location <input name="location"></label></p>
+          <p><label>Bio <textarea name="bio"></textarea></label></p>
+          <p><label>Profile picture <input name="profile_picture" type="file" accept="image/*"></label></p>
+          <p>
+            <button type="submit">Save changes</button>
+            <button type="button" id="edit-delete-btn" class="btn-danger">Delete this user</button>
+          </p>
+        </form>
+        <pre id="edit-out" class="output"></pre>
+      </div>
+    </details>
+
+    <!-- ============== Users ============== -->
+    <details name="accordion" class="panel">
+      <summary>Users</summary>
+      <div class="panel-body">
+        <form id="search-users-form">
+          <p><label>Filter(Optional) <input name="query"></label></p>
+          <p><button type="submit">Search</button></p>
+        </form>
+        <div id="search-users-out" class="output"></div>
+      </div>
+    </details>
+
+    <!-- ============== Create event ============== -->
+    <details name="accordion" class="panel">
+      <summary>Create event</summary>
+      <div class="panel-body">
+        <form id="create-event-form">
+          <p><label>Date <input name="date" type="date" required></label></p>
+          <p><label>Name <input name="name" required></label></p>
+          <p><label>Details <textarea name="details"></textarea></label></p>
+          <p><label>Creator user id <input name="creator" type="number" min="1" required></label></p>
+          <p><button type="submit">Create event</button></p>
+        </form>
+        <pre id="create-event-out" class="output"></pre>
+      </div>
+    </details>
+
+    <!-- ============== Events ============== -->
+    <details name="accordion" class="panel">
+      <summary>Events</summary>
+      <div class="panel-body">
+        <form id="search-events-form">
+          <p><label>Filter (optional) <input name="query"></label></p>
+          <p><button type="submit">Search</button></p>
+        </form>
+        <div id="search-events-out" class="output"></div>
+      </div>
+    </details>
+  </main>
+
+  <script type="module" src="ui/glue/app.js"></script>
 </body>
 </html>

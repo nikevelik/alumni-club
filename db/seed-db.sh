@@ -1,6 +1,6 @@
 #!/bin/bash
 # Seeds the database with a test table and a single row.
-# Run from the repo root: bash etc/seed-db.sh
+# Run from the repo root: bash db/seed-db.sh
 
 set -e
 
@@ -53,8 +53,8 @@ CREATE TABLE IF NOT EXISTS events (
 DELETE FROM events;
 SQL
 
-docker cp users.csv lamp_db:/tmp/users.csv
-docker cp events.csv lamp_db:/tmp/events.csv
+docker cp db/users.csv lamp_db:/tmp/users.csv
+docker cp db/events.csv lamp_db:/tmp/events.csv
 
 docker exec -i lamp_db mariadb --local-infile --user=root --password="$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" <<'SQL'
 LOAD DATA LOCAL INFILE '/tmp/users.csv'
