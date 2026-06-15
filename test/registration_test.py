@@ -74,6 +74,15 @@ class RegistrationTest(unittest.TestCase):
         self.assertEqual(body.get("error"), "missing_required_fields", msg=body)
         self.assertIn("name", body.get("fields", []), msg=body)
 
+    def test_register_with_missing_name_fails(self):
+        status, body = post({
+            "email": f"missing.name.{int(time.time())}@example.com",
+            "password": "hunter",
+        })
+        self.assertEqual(status, 400, msg=body)
+        self.assertEqual(body.get("error"), "missing_required_fields", msg=body)
+        self.assertIn("name", body.get("fields", []), msg=body)
+
     def test_register_with_bigname_fails(self):
         status, body = post({
             "name": "A" * 128,
@@ -94,6 +103,15 @@ class RegistrationTest(unittest.TestCase):
         self.assertEqual(body.get("error"), "missing_required_fields", msg=body)
         self.assertIn("email", body.get("fields", []), msg=body)
 
+    def test_register_with_missing_email_fails(self):
+        status, body = post({
+            "name": "Jane Doe",
+            "password": "hunter",
+        })
+        self.assertEqual(status, 400, msg=body)
+        self.assertEqual(body.get("error"), "missing_required_fields", msg=body)
+        self.assertIn("email", body.get("fields", []), msg=body)
+
     def test_register_with_invalid_email_fails(self):
         status, body = post({
             "name": "Jane Doe",
@@ -102,6 +120,25 @@ class RegistrationTest(unittest.TestCase):
         })
         self.assertEqual(status, 400, msg=body)
         self.assertEqual(body.get("error"), "invalid_email", msg=body)
+
+    def test_register_with_empty_password_fails(self):
+        status, body = post({
+            "name": "Jane Doe",
+            "email": f"empty.password.{int(time.time())}@example.com",
+            "password": "",
+        })
+        self.assertEqual(status, 400, msg=body)
+        self.assertEqual(body.get("error"), "missing_required_fields", msg=body)
+        self.assertIn("password", body.get("fields", []), msg=body)
+
+    def test_register_with_missing_password_fails(self):
+        status, body = post({
+            "name": "Jane Doe",
+            "email": f"missing.password.{int(time.time())}@example.com",
+        })
+        self.assertEqual(status, 400, msg=body)
+        self.assertEqual(body.get("error"), "missing_required_fields", msg=body)
+        self.assertIn("password", body.get("fields", []), msg=body)
 
     def test_register_with_big_field_of_study_fails(self):
         status, body = post({
@@ -179,6 +216,33 @@ class RegistrationTest(unittest.TestCase):
         })
         self.assertEqual(status, 400, msg=body)
         self.assertEqual(body.get("error"), "file_too_large", msg=body)
+
+    def test_register_with_graduation_year_below_minimum_fails(self):
+        status, body = post({
+            "name": "Jane Doe",
+            "email": f"year.low.{int(time.time())}@example.com",
+            "password": "hunter",
+            "graduation_year": 1899,
+        })
+        self.assertEqual(status, 400, msg=body)
+        self.assertEqual(body.get("error"), "invalid_graduation_year", msg=body)
+
+    def test_register_with_graduation_year_above_maximum_fails(self):
+        status, body = post({
+            "name": "Jane Doe",
+            "email": f"year.high.{int(time.time())}@example.com",
+            "password": "hunter",
+            "graduation_year": 2101,
+        })
+        self.assertEqual(status, 400, msg=body)
+        self.assertEqual(body.get("error"), "invalid_graduation_year", msg=body)
+
+    def test_register_with_existing_email_fails(self):
+        email = f"duplicate.{int(time.time())}@example.com"
+        post({"name": "Jane Doe", "email": email, "password": "hunter"})
+        status, body = post({"name": "Jane Doe", "email": email, "password": "hunter"})
+        self.assertEqual(status, 409, msg=body)
+        self.assertEqual(body.get("error"), "email_already_registered", msg=body)
 
 
 if __name__ == "__main__":
