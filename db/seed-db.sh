@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS test (
 DELETE FROM test;
 INSERT INTO test (message) VALUES ('Hello from the database!');
 
-CREATE TABLE IF NOT EXISTS users (
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
   `id`              INT AUTO_INCREMENT PRIMARY KEY,
   `name`            VARCHAR(127) CHARACTER SET ascii,
   `email`           VARCHAR(127) CHARACTER SET ascii,
@@ -40,17 +41,14 @@ CREATE TABLE IF NOT EXISTS users (
   `profile_picture` VARCHAR(127) CHARACTER SET ascii
 );
 
-DELETE FROM users;
-
-CREATE TABLE IF NOT EXISTS events (
+DROP TABLE IF EXISTS events;
+CREATE TABLE events (
   `id`      INT AUTO_INCREMENT PRIMARY KEY,
   `date`    DATE NOT NULL,
   `name`    VARCHAR(127) CHARACTER SET ascii NOT NULL,
   `details` TEXT CHARACTER SET ascii,
   `creator` INT NOT NULL
 );
-
-DELETE FROM events;
 SQL
 
 docker cp db/users.csv lamp_db:/tmp/users.csv
