@@ -6,7 +6,7 @@ Run: python3 -m pytest registration_test.py
 
 import time
 import unittest
-from helpers import POST_URL, post, post_form
+from helpers import POST_URL, make_png, post, post_form
 
 
 class RegistrationTest(unittest.TestCase):
@@ -51,6 +51,16 @@ class RegistrationTest(unittest.TestCase):
             0x00,0x00,0x02,0x00,0x01,0xe2,0x21,0xbc,0x33,0x00,0x00,0x00,0x00,0x49,0x45,0x4e,
             0x44,0xae,0x42,0x60,0x82,
         ]), "image/png"),
+        })
+        self.assertEqual(status, 201)
+
+    def test_register_with_max_size_profile_picture_returns_201(self):
+        status, body = post_form(POST_URL, {
+            "name": "Bob Max",
+            "email": f"bob.max.{int(time.time())}@example.com",
+            "password": "hunter",
+        }, {
+            "profile_picture": ("max.png", make_png(65536), "image/png"),
         })
         self.assertEqual(status, 201)
 
@@ -167,7 +177,7 @@ class RegistrationTest(unittest.TestCase):
             "email": f"big.img.{int(time.time())}@example.com",
             "password": "hunter",
         }, {
-            "profile_picture": ("big.png", b"A" * 65537, "image/png"),
+            "profile_picture": ("big.png", make_png(65537), "image/png"),
         })
         self.assertEqual(status, 400, msg=body)
         self.assertEqual(body.get("error"), "file_too_large", msg=body)

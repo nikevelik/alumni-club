@@ -1,9 +1,11 @@
 import http.cookiejar
 import json
+import struct
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zlib
 
 
 BASE_URL = "http://35.208.59.90"
@@ -41,3 +43,17 @@ def post_form(url, fields, files=None):
 
 def post(data, files=None):
     return post_form(POST_URL, data, files)
+
+
+def make_png(target_size):
+    def chunk(name, data):
+        c = name + data
+        return struct.pack('>I', len(data)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
+    sig = b'\x89PNG\r\n\x1a\n'
+    ihdr = chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0))
+    idat = chunk(b'IDAT', zlib.compress(b'\x00\xff\x00\x00'))
+    iend = chunk(b'IEND', b'')
+    base = sig + ihdr + idat + iend
+    pad_len = target_size - len(base) - 12
+    text = chunk(b'tEXt', b'Comment\x00' + b'A' * (pad_len - 8))
+    return sig + ihdr + idat + text + iend
