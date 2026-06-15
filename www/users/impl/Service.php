@@ -12,9 +12,15 @@ class Service {
   const KEY_PASSWORD = 'password';
   const KEY_PASSWORD_HASH = 'password_hash';
   const KEY_GRADUATION_YEAR = 'graduation_year';
+  const KEY_FIELD_OF_STUDY = 'field_of_study';
+  const KEY_CURRENT_ROLE = 'current_role';
+  const KEY_COMPANY = 'company';
+  const KEY_LOCATION = 'location';
+  const KEY_BIO = 'bio';
   const KEY_ID = 'id';
   const KEY_ERROR = 'error';
   const KEY_FIELDS = 'fields';
+  const KEY_MAX_LENGTHS = 'max_lengths';
 
   const REQUIRED_FIELDS = ['name', 'email', 'password'];
   // profile_picture is set via $_FILES, never as a string field — see handleUpload().
@@ -30,8 +36,19 @@ class Service {
   const ERR_INVALID_ID      = 'invalid_id';
   const ERR_NOT_FOUND       = 'user_not_found';
   const ERR_NO_FIELDS       = 'no_fields_to_update';
+  const ERR_FIELD_TOO_LONG  = 'field_too_long';
   const ERR_INVALID_CREDENTIALS = 'invalid_credentials';
   const ERR_NOT_LOGGED_IN       = 'not_logged_in';
+
+  const FIELD_MAX_LENGTHS = [
+    self::KEY_NAME           => 127,
+    self::KEY_EMAIL          => 127,
+    self::KEY_FIELD_OF_STUDY => 127,
+    self::KEY_CURRENT_ROLE   => 127,
+    self::KEY_COMPANY        => 127,
+    self::KEY_LOCATION       => 127,
+    self::KEY_BIO            => 127,
+  ];
 
   const KEY_DELETED = 'deleted';
   const KEY_UPDATED = 'updated';
@@ -216,6 +233,10 @@ class Service {
     return [self::KEY_ERROR => $code, self::KEY_FIELDS => $fields];
   }
 
+  private static function errorWithMaxLengths($code, $maxLengths) {
+    return [self::KEY_ERROR => $code, self::KEY_MAX_LENGTHS => $maxLengths];
+  }
+
   private static function decorateUser($user) {
     if (!empty($user) && !empty($user[self::KEY_PROFILE_PICTURE])) {
       $user[self::KEY_PROFILE_PICTURE] = self::IMG_PREFIX . $user[self::KEY_PROFILE_PICTURE];
@@ -234,6 +255,16 @@ class Service {
   }
 
   private static function validateProfileFields($input, $emailRequired) {
+    $tooLong = [];
+    foreach (self::FIELD_MAX_LENGTHS as $field => $max) {
+      if (isset($input[$field]) && strlen($input[$field]) > $max) {
+        $tooLong[$field] = $max;
+      }
+    }
+    if (!empty($tooLong)) {
+      return self::errorWithMaxLengths(self::ERR_FIELD_TOO_LONG, $tooLong);
+    }
+
     if ($emailRequired || isset($input[self::KEY_EMAIL])) {
       if (!filter_var($input[self::KEY_EMAIL], FILTER_VALIDATE_EMAIL)) {
         return self::error(self::ERR_INVALID_EMAIL);

@@ -74,16 +74,15 @@ class RegistrationTest(unittest.TestCase):
         self.assertEqual(body.get("error"), "missing_required_fields", msg=body)
         self.assertIn("name", body.get("fields", []), msg=body)
 
-
-    # this test requires to be changed, as well as the code tested by it.
     def test_register_with_bigname_fails(self):
         status, body = post({
             "name": "A" * 128,
             "email": f"bigname.{int(time.time())}@example.com",
             "password": "hunter",
         })
-        self.assertEqual(status, 500, msg=body)
-        self.assertEqual(body.get("error"), "internal_error", msg=body)
+        self.assertEqual(status, 400, msg=body)
+        self.assertEqual(body.get("error"), "field_too_long", msg=body)
+        self.assertEqual(body.get("max_lengths", {}).get("name"), 127, msg=body)
 
     def test_register_with_empty_email_fails(self):
         status, body = post({
@@ -104,7 +103,6 @@ class RegistrationTest(unittest.TestCase):
         self.assertEqual(status, 400, msg=body)
         self.assertEqual(body.get("error"), "invalid_email", msg=body)
 
-    # this test requires to be changed, as well as the code tested by it.
     def test_register_with_big_field_of_study_fails(self):
         status, body = post({
             "name": "Jane Doe",
@@ -112,10 +110,10 @@ class RegistrationTest(unittest.TestCase):
             "password": "hunter",
             "field_of_study": "A" * 128,
         })
-        self.assertEqual(status, 500, msg=body)
-        self.assertEqual(body.get("error"), "internal_error", msg=body)
+        self.assertEqual(status, 400, msg=body)
+        self.assertEqual(body.get("error"), "field_too_long", msg=body)
+        self.assertEqual(body.get("max_lengths", {}).get("field_of_study"), 127, msg=body)
 
-    # this test requires to be changed, as well as the code tested by it.
     def test_register_with_big_current_role_fails(self):
         status, body = post({
             "name": "Jane Doe",
@@ -123,10 +121,10 @@ class RegistrationTest(unittest.TestCase):
             "password": "hunter",
             "current_role": "A" * 128,
         })
-        self.assertEqual(status, 500, msg=body)
-        self.assertEqual(body.get("error"), "internal_error", msg=body)
+        self.assertEqual(status, 400, msg=body)
+        self.assertEqual(body.get("error"), "field_too_long", msg=body)
+        self.assertEqual(body.get("max_lengths", {}).get("current_role"), 127, msg=body)
 
-    # this test requires to be changed, as well as the code tested by it.
     def test_register_with_big_company_fails(self):
         status, body = post({
             "name": "Jane Doe",
@@ -134,10 +132,10 @@ class RegistrationTest(unittest.TestCase):
             "password": "hunter",
             "company": "A" * 128,
         })
-        self.assertEqual(status, 500, msg=body)
-        self.assertEqual(body.get("error"), "internal_error", msg=body)
+        self.assertEqual(status, 400, msg=body)
+        self.assertEqual(body.get("error"), "field_too_long", msg=body)
+        self.assertEqual(body.get("max_lengths", {}).get("company"), 127, msg=body)
 
-    # this test requires to be changed, as well as the code tested by it.
     def test_register_with_big_location_fails(self):
         status, body = post({
             "name": "Jane Doe",
@@ -145,10 +143,10 @@ class RegistrationTest(unittest.TestCase):
             "password": "hunter",
             "location": "A" * 128,
         })
-        self.assertEqual(status, 500, msg=body)
-        self.assertEqual(body.get("error"), "internal_error", msg=body)
+        self.assertEqual(status, 400, msg=body)
+        self.assertEqual(body.get("error"), "field_too_long", msg=body)
+        self.assertEqual(body.get("max_lengths", {}).get("location"), 127, msg=body)
 
-    # this test requires to be changed, as well as the code tested by it.
     def test_register_with_big_bio_fails(self):
         status, body = post({
             "name": "Jane Doe",
@@ -156,9 +154,9 @@ class RegistrationTest(unittest.TestCase):
             "password": "hunter",
             "bio": "A" * 128,
         })
-        self.assertEqual(status, 500, msg=body)
-        self.assertEqual(body.get("error"), "internal_error", msg=body)
-
+        self.assertEqual(status, 400, msg=body)
+        self.assertEqual(body.get("error"), "field_too_long", msg=body)
+        self.assertEqual(body.get("max_lengths", {}).get("bio"), 127, msg=body)
 
     def test_register_with_invalid_image_format_fails(self):
         status, body = post_form(POST_URL, {
