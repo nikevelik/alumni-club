@@ -28,6 +28,20 @@ class LoginTest(unittest.TestCase):
 
         delete(user_id)
 
+    def test_login_when_logged_returns_200(self):
+        email = f"login.already.{int(time.time())}@example.com"
+        password = "hunter"
+
+        _, body = register(email, password)
+        user_id = body["id"]
+
+        login(email, password)
+        status, body = login(email, password)
+        self.assertEqual(status, 200)
+        self.assertTrue(body.get("logged_in"))
+
+        delete(user_id)
+
     def test_login_with_invalid_credentials_returns_401(self):
         status, body = login(f"nonexistent.{int(time.time())}@example.com", "hunter")
         self.assertEqual(status, 401)
