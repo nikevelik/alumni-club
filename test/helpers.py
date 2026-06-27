@@ -8,9 +8,11 @@ import urllib.request
 import zlib
 
 
-BASE_URL = "http://35.208.59.90"
-POST_URL  = f"{BASE_URL}/users/post.php"
-LOGIN_URL = f"{BASE_URL}/users/login.php"
+BASE_URL   = "http://35.208.59.90"
+POST_URL   = f"{BASE_URL}/users/post.php"
+LOGIN_URL  = f"{BASE_URL}/users/login.php"
+LOGOUT_URL = f"{BASE_URL}/users/logout.php"
+DELETE_URL = f"{BASE_URL}/users/delete.php"
 
 
 COOKIE_JAR = http.cookiejar.CookieJar()
@@ -43,6 +45,18 @@ def post_form(url, fields, files=None):
 
 def post(data, files=None):
     return post_form(POST_URL, data, files)
+
+
+def login(email, password):
+    return post_form(LOGIN_URL, {"email": email, "password": password})
+
+
+def logout():
+    return post_form(LOGOUT_URL, {})
+
+
+def delete(user_id):
+    return post_form(DELETE_URL, {"id": user_id})
 
 
 def make_png(target_size):
