@@ -7,5 +7,6 @@ if __name__ == "__main__":
         "unit/loginTest.py",
         "unit/registrationTest.py",
         "integration/smokeIT.py",
+        "integration/logoutIT.py",
         "-v",
     ]))
