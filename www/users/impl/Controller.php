@@ -72,6 +72,17 @@ class Controller {
   // account without already having a session. The service sees user_id=0
   // (anonymous caller) which is the correct semantics here.
   public function post($request, $files = []) {
+    // DEBUG: log what PHP actually received. Helpful for file-upload tests
+    // where $_FILES can arrive empty or with a non-zero error code.
+    error_log('POST users request: ' . json_encode($request));
+    error_log('POST users files: ' . json_encode(array_map(function ($f) {
+      return [
+        'name'  => $f['name']  ?? null,
+        'type'  => $f['type']  ?? null,
+        'size'  => $f['size']  ?? null,
+        'error' => $f['error'] ?? null,
+      ];
+    }, $files)));
     return self::respond(function () use ($request, $files) {
       return Service::create(0, $request, $files);
     }, self::HTTP_CREATED);
@@ -104,7 +115,17 @@ class Controller {
     } catch (Throwable $e) {
       error_log($e);
       http_response_code(self::HTTP_INTERNAL_ERROR);
-      return json_encode([Service::KEY_ERROR => self::ERR_INTERNAL]);
+      // DEBUG: include exception details in the response so failing tests
+      // show the root cause inline. Strip the 'debug' key before shipping.
+      return json_encode([
+        Service::KEY_ERROR => self::ERR_INTERNAL,
+        'debug' => [
+          'class'   => get_class($e),
+          'message' => $e->getMessage(),
+          'file'    => $e->getFile(),
+          'line'    => $e->getLine(),
+        ],
+      ]);
     }
     if (isset($result[Service::KEY_ERROR])) {
       $code = $result[Service::KEY_ERROR];

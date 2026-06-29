@@ -38,9 +38,13 @@ def post_form(url, fields, files=None):
         req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
     try:
         with urllib.request.urlopen(req) as resp:
-            return resp.status, json.loads(resp.read())
+            status, body = resp.status, json.loads(resp.read())
     except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read())
+        status, body = e.code, json.loads(e.read())
+    # DEBUG: print every response so failing tests show the full body
+    # (including the 'debug' field added by Controller::respond on 500s).
+    print(f"[{status}] POST {url} -> {json.dumps(body)[:500]}", flush=True)
+    return status, body
 
 
 def post(data, files=None):
