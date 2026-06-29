@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alumni Club</title>
+  <link rel="stylesheet" href="ui/style/styles.css">
+</head>
+<body>
+  <!-- Toasts: transient feedback, rendered top-right. JS appends/removes nodes. -->
+  <div id="toast-host" class="toast-host" aria-live="polite" aria-atomic="true"></div>
+
+  <div class="app" data-route="directory">
+    <!-- ============== Header ============== -->
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark">AC</span>
+        <span class="brand-name">Alumni Club</span>
+      </div>
+      <div class="session">
+        <span id="session-pill" class="session-pill session-pill--out">Signed out</span>
+        <button id="logout-btn" type="button" class="btn btn-ghost" hidden>Sign out</button>
+      </div>
+    </header>
+
+    <!-- ============== Sidebar ============== -->
+    <nav class="app-nav" aria-label="Sections">
+      <button type="button" class="nav-item is-active" data-route="directory">
+        <span class="nav-ico">👥</span> Directory
+      </button>
+      <button type="button" class="nav-item" data-route="events">
+        <span class="nav-ico">📅</span> Events
+      </button>
+      <button type="button" class="nav-item" data-route="profile" data-requires-auth>
+        <span class="nav-ico">👤</span> Profile
+      </button>
+      <button type="button" class="nav-item" data-route="auth" data-hidden-when-auth>
+        <span class="nav-ico">🔑</span> Sign in
+      </button>
+    </nav>
+
+    <!-- ============== Content ============== -->
+    <main class="app-main">
+
+      <!-- ---------- Directory ---------- -->
+      <section class="view" data-view="directory">
+        <header class="view-head">
+          <h2>Directory</h2>
+          <p class="view-sub">Browse alumni members.</p>
+        </header>
+        <form id="search-users-form" class="search-bar" role="search">
+          <input name="query" placeholder="Search by email…" autocomplete="off">
+          <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+        <div id="users-out" class="card-grid"></div>
+      </section>
+
+      <!-- ---------- Events ---------- -->
+      <section class="view" data-view="events" hidden>
+        <header class="view-head">
+          <h2>Events</h2>
+          <p class="view-sub">Upcoming reunions, meetups, and milestones.</p>
+        </header>
+
+        <details class="composer" data-requires-auth hidden>
+          <summary>Create new event</summary>
+          <form id="create-event-form" class="form-grid">
+            <label>Date <input name="date" type="date" required></label>
+            <label>Name <input name="name" placeholder="Annual reunion" required></label>
+            <label class="span-2">Details <textarea name="details" rows="3" placeholder="Optional"></textarea></label>
+            <div class="span-2 form-actions">
+              <button type="submit" class="btn btn-primary">Publish</button>
+            </div>
+          </form>
+        </details>
+
+        <form id="search-events-form" class="search-bar" role="search">
+          <input name="query" placeholder="Search by name…" autocomplete="off">
+          <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+        <div id="events-out" class="card-grid"></div>
+      </section>
+
+      <!-- ---------- Profile ---------- -->
+      <section class="view" data-view="profile" hidden>
+        <header class="view-head">
+          <h2>Profile</h2>
+          <p class="view-sub">Edit your own details. Leave a field blank to keep its current value.</p>
+        </header>
+
+        <div id="profile-summary" class="profile-summary"></div>
+
+        <form id="edit-form" class="form-grid">
+          <label>Name <input name="name" placeholder="Jane Doe"></label>
+          <label>Email <input name="email" type="email" placeholder="jane@example.com"></label>
+          <label>Password <input name="password" type="password" placeholder="•••••••• (unchanged)"></label>
+          <label>Graduation year <input name="graduation_year" type="number" min="1900" max="2100"></label>
+          <label>Field of study <input name="field_of_study"></label>
+          <label>Current role <input name="current_role"></label>
+          <label>Company <input name="company"></label>
+          <label>Location <input name="location"></label>
+          <label class="span-2">Bio <textarea name="bio" rows="3"></textarea></label>
+          <label class="span-2">Profile picture <input name="profile_picture" type="file" accept="image/*"></label>
+          <div class="span-2 form-actions">
+            <button type="submit" class="btn btn-primary">Save changes</button>
+            <button type="button" id="delete-self-btn" class="btn btn-danger">Delete my account</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ---------- Auth (Sign in / Register) ---------- -->
+      <section class="view" data-view="auth" hidden>
+        <header class="view-head">
+          <h2>Welcome</h2>
+          <p class="view-sub">Sign in to your account or register a new one.</p>
+        </header>
+        <div class="auth-grid">
+
+          <div class="auth-card">
+            <h3>Sign in</h3>
+            <form id="login-form" class="form-grid">
+              <label class="span-2">Email <input name="email" type="email" required></label>
+              <label class="span-2">Password <input name="password" type="password" required></label>
+              <div class="span-2 form-actions">
+                <button type="submit" class="btn btn-primary">Sign in</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="auth-card">
+            <h3>Register</h3>
+            <form id="register-form" class="form-grid">
+              <label>Name <input name="name" required></label>
+              <label>Email <input name="email" type="email" required></label>
+              <label>Password <input name="password" type="password" required></label>
+              <label>Graduation year <input name="graduation_year" type="number" min="1900" max="2100"></label>
+              <label>Field of study <input name="field_of_study"></label>
+              <label>Current role <input name="current_role"></label>
+              <label>Company <input name="company"></label>
+              <label>Location <input name="location"></label>
+              <label class="span-2">Bio <textarea name="bio" rows="2"></textarea></label>
+              <label class="span-2">Profile picture <input name="profile_picture" type="file" accept="image/*"></label>
+              <div class="span-2 form-actions">
+                <button type="submit" class="btn btn-primary">Create account</button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ============== User detail modal ============== -->
+  <dialog id="user-modal" class="modal">
+    <div id="user-modal-body"></div>
+    <form method="dialog" class="modal-actions"><button class="btn btn-ghost">Close</button></form>
+  </dialog>
+
+  <script type="module" src="ui/glue/app.js"></script>
+</body>
+</html>
