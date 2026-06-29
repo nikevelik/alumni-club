@@ -29,6 +29,14 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Global visibility utility. We use this instead of the [hidden] attribute
+   because [hidden] = display:none has the same specificity as any other
+   attribute selector and loses to any class rule that sets display (e.g.
+   .view { display: flex }). A utility class with !important is the only
+   way to win unconditionally without sprinkling .x[hidden] overrides
+   beside every component. JS toggles .is-hidden, never element.hidden. */
+.is-hidden { display: none !important; }
+
 html, body { height: 100%; }
 
 body {

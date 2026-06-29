@@ -31,6 +31,16 @@ function fileFromForm(form, fieldName) {
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
+// Toggle visibility via a CSS utility class instead of the `hidden` attribute.
+// The attribute relies on the UA's `[hidden] { display: none }` rule, which
+// loses specificity ties to any class rule that sets `display` (e.g. flex/grid
+// layouts), causing toggles to be silently ignored. `.is-hidden` uses
+// `!important` and wins unconditionally — see styles.css.
+function setHidden(el, hide) {
+  if (!el) return;
+  el.classList.toggle('is-hidden', !!hide);
+}
+
 // ---------- auth UI state ----------
 
 // Toggles every element gated on session presence. Driven by rememberedUserId()
@@ -48,11 +58,11 @@ function applyAuthState() {
     pill.textContent = 'Signed out';
     pill.className = 'session-pill session-pill--out';
   }
-  $('#logout-btn').hidden = !signedIn;
+  setHidden($('#logout-btn'), !signedIn);
 
   // Nav items: profile only when signed in, "Sign in" only when out.
-  $$('[data-requires-auth]').forEach((el) => { el.hidden = !signedIn; });
-  $$('[data-hidden-when-auth]').forEach((el) => { el.hidden = signedIn; });
+  $$('[data-requires-auth]').forEach((el) => setHidden(el, !signedIn));
+  $$('[data-hidden-when-auth]').forEach((el) => setHidden(el, signedIn));
 
   // If currently on a route that just became forbidden, fall back to directory.
   const route = document.querySelector('.app').dataset.route;
@@ -66,7 +76,7 @@ function routeTo(name) {
   $$('.nav-item').forEach((btn) => {
     btn.classList.toggle('is-active', btn.dataset.route === name);
   });
-  $$('.view').forEach((v) => { v.hidden = v.dataset.view !== name; });
+  $$('.view').forEach((v) => setHidden(v, v.dataset.view !== name));
 
   if (name === 'directory') loadUsers('');
   if (name === 'events') loadEvents('');

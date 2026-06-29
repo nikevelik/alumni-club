@@ -19,7 +19,7 @@
       </div>
       <div class="session">
         <span id="session-pill" class="session-pill session-pill--out">Signed out</span>
-        <button id="logout-btn" type="button" class="btn btn-ghost" hidden>Sign out</button>
+        <button id="logout-btn" type="button" class="btn btn-ghost is-hidden">Sign out</button>
       </div>
     </header>
 
@@ -56,13 +56,13 @@
       </section>
 
       <!-- ---------- Events ---------- -->
-      <section class="view" data-view="events" hidden>
+      <section class="view is-hidden" data-view="events">
         <header class="view-head">
           <h2>Events</h2>
           <p class="view-sub">Upcoming reunions, meetups, and milestones.</p>
         </header>
 
-        <details class="composer" data-requires-auth hidden>
+        <details class="composer is-hidden" data-requires-auth>
           <summary>Create new event</summary>
           <form id="create-event-form" class="form-grid">
             <label>Date <input name="date" type="date" required></label>
@@ -82,7 +82,7 @@
       </section>
 
       <!-- ---------- Profile ---------- -->
-      <section class="view" data-view="profile" hidden>
+      <section class="view is-hidden" data-view="profile">
         <header class="view-head">
           <h2>Profile</h2>
           <p class="view-sub">Edit your own details. Leave a field blank to keep its current value.</p>
@@ -109,7 +109,7 @@
       </section>
 
       <!-- ---------- Auth (Sign in / Register) ---------- -->
-      <section class="view" data-view="auth" hidden>
+      <section class="view is-hidden" data-view="auth">
         <header class="view-head">
           <h2>Welcome</h2>
           <p class="view-sub">Sign in to your account or register a new one.</p>
