@@ -4,12 +4,6 @@
 CREATE DATABASE IF NOT EXISTS `alumni_club` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `alumni_club`;
 
-DROP TABLE IF EXISTS `test`;
-CREATE TABLE `test` (
-  message VARCHAR(255) NOT NULL
-);
-INSERT INTO `test` (message) VALUES ('Hello from the database!');
-
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id`              INT AUTO_INCREMENT PRIMARY KEY,
