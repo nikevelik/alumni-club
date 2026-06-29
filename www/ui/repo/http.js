@@ -2,7 +2,11 @@
 // PHPSESSID cookie automatically, surfaces non-2xx responses as ApiError so
 // callers can pattern-match on { status, body.error } without re-reading res.
 
-export const API_BASE = '';
+// API_BASE is derived from this module's own URL so the UI works whether it's
+// served from the web root (`/`) or from a subpath like `/alumni-club/www/`.
+// This file lives at `<base>/ui/repo/http.js`, so stripping that suffix
+// yields the app root that the PHP endpoints live under.
+export const API_BASE = new URL('../../', import.meta.url).pathname.replace(/\/$/, '');
 
 export class ApiError extends Error {
   constructor(status, body) {
