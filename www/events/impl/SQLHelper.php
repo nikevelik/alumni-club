@@ -1,0 +1,46 @@
+<?php
+
+class SQLHelper {
+  const ENV_FILE = __DIR__ . '/../../../.env';
+  const DSN = 'mysql:host=localhost;port=3307;dbname=';
+  const KEY_DATABASE = 'MYSQL_DATABASE';
+  const KEY_USER = 'MYSQL_USER';
+  const KEY_PASSWORD = 'MYSQL_PASSWORD';
+
+  private static function makePDO() {
+    $env = parse_ini_file(self::ENV_FILE);
+    return new PDO(
+      self::DSN . $env[self::KEY_DATABASE],
+      $env[self::KEY_USER],
+      $env[self::KEY_PASSWORD]
+    );
+  }
+
+  public static function queryOne($sql, $params = []) {
+    $pdo = self::makePDO();
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+  }
+
+  public static function queryAll($sql, $params = []) {
+    $pdo = self::makePDO();
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+  }
+
+  public static function execute($sql, $params = []) {
+    $pdo = self::makePDO();
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    return $pdo->lastInsertId();
+  }
+
+  public static function executeUpdate($sql, $params = []) {
+    $pdo = self::makePDO();
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->rowCount();
+  }
+}
