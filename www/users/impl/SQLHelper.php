@@ -1,8 +1,8 @@
 <?php
 
 class SQLHelper {
-  const ENV_FILE = '/var/www/.env';
-  const DSN = 'mysql:host=db;port=3306;dbname=';
+  const ENV_FILE = __DIR__ . '/../../../.env';
+  const DSN = 'mysql:host=localhost;port=3307;dbname=';
   const KEY_DATABASE = 'MYSQL_DATABASE';
   const KEY_USER = 'MYSQL_USER';
   const KEY_PASSWORD = 'MYSQL_PASSWORD';
