@@ -56,7 +56,6 @@ class Service {
       return $validation;
     }
 
-    // Creator is bound to the authenticated session — clients cannot spoof it.
     if (!Repository::creatorExists($current_user_id)) {
       return self::error(self::ERR_CREATOR_NOT_FOUND);
     }
@@ -77,8 +76,6 @@ class Service {
     }
     return [self::KEY_DELETED => $id];
   }
-
-  // ---------- private helpers ----------
 
   private static function extractId($input) {
     $id = $input[self::KEY_ID] ?? null;

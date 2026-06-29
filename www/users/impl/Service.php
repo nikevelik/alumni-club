@@ -26,7 +26,6 @@ class Service {
   const KEY_MAX_LENGTHS = 'max_lengths';
 
   const REQUIRED_FIELDS = ['name', 'email', 'password'];
-  // profile_picture is set via $_FILES, never as a string field — see handleUpload().
   const OPTIONAL_FIELDS = [
     'graduation_year', 'field_of_study', 'current_role',
     'company', 'location', 'bio',
@@ -202,8 +201,6 @@ class Service {
     }
     return [self::KEY_LOGGED_OUT => (int)$current_user_id];
   }
-
-  // ---------- private helpers ----------
 
   private static function handleUpload($files) {
     if (!isset($files[self::KEY_PROFILE_PICTURE])) {

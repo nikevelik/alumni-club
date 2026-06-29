@@ -3,9 +3,6 @@
 class SessionHelper {
   const KEY_USER_ID = 'user_id';
 
-  // Single entry point for session_start() so cookie params, lifetime, and
-  // SameSite policy stay in one place. Callers should invoke start() at the
-  // top of any endpoint that reads or writes session state.
   public static function start() {
     if (session_status() === PHP_SESSION_ACTIVE) {
       return;
@@ -25,7 +22,6 @@ class SessionHelper {
     return isset($_SESSION[self::KEY_USER_ID]) ? (int)$_SESSION[self::KEY_USER_ID] : 0;
   }
 
-  // Regenerate the session id on login to defeat session fixation.
   public static function setUserId($id) {
     session_regenerate_id(true);
     $_SESSION[self::KEY_USER_ID] = (int)$id;

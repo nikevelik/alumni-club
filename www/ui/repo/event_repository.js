@@ -8,7 +8,6 @@ export function getAllEvents(query) {
   return request(`/events/get_all.php${buildQuery({ query })}`);
 }
 
-// `creator` is bound server-side from the session; never sent from the client.
 export function createEvent(event) {
   return request('/events/post.php', { method: 'POST', body: toFormData(event) });
 }

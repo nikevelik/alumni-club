@@ -6,10 +6,6 @@ import {
 } from './render.js';
 import { toastOk, toastError } from './toast.js';
 
-// ---------- helpers ----------
-
-// FormData → plain object. Empty strings are dropped so patch requests don't
-// overwrite existing values; files are skipped (caller pulls them separately).
 function formToObject(form) {
   const fd = new FormData(form);
   const out = {};
@@ -28,28 +24,19 @@ function fileFromForm(form, fieldName) {
   return f && f.size > 0 ? f : null;
 }
 
+
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-// Toggle visibility via a CSS utility class instead of the `hidden` attribute.
-// The attribute relies on the UA's `[hidden] { display: none }` rule, which
-// loses specificity ties to any class rule that sets `display` (e.g. flex/grid
-// layouts), causing toggles to be silently ignored. `.is-hidden` uses
-// `!important` and wins unconditionally — see styles.css.
 function setHidden(el, hide) {
   if (!el) return;
   el.classList.toggle('is-hidden', !!hide);
 }
 
-// ---------- auth UI state ----------
-
-// Toggles every element gated on session presence. Driven by rememberedUserId()
-// rather than a separate flag so tab refresh after login stays consistent.
 function applyAuthState() {
   const userId = rememberedUserId();
   const signedIn = !!userId;
 
-  // Pill + sign-out button in the header.
   const pill = $('#session-pill');
   if (signedIn) {
     pill.textContent = `Signed in · user #${userId}`;
@@ -60,16 +47,12 @@ function applyAuthState() {
   }
   setHidden($('#logout-btn'), !signedIn);
 
-  // Nav items: profile only when signed in, "Sign in" only when out.
   $$('[data-requires-auth]').forEach((el) => setHidden(el, !signedIn));
   $$('[data-hidden-when-auth]').forEach((el) => setHidden(el, signedIn));
 
-  // If currently on a route that just became forbidden, fall back to directory.
   const route = document.querySelector('.app').dataset.route;
   if (!signedIn && (route === 'profile')) routeTo('directory');
 }
-
-// ---------- routing (in-page tabs, no URL changes) ----------
 
 function routeTo(name) {
   document.querySelector('.app').dataset.route = name;
@@ -86,8 +69,6 @@ function routeTo(name) {
 $$('.nav-item').forEach((btn) => {
   btn.addEventListener('click', () => routeTo(btn.dataset.route));
 });
-
-// ---------- data loaders ----------
 
 function loadUsers(query) {
   const out = $('#users-out');
@@ -111,9 +92,6 @@ function loadEvents(query) {
     });
 }
 
-// Profile view: fetch own record, fill the summary card and pre-populate the
-// edit form's hidden id. Profile-edit only edits the *current* user — the API
-// allows arbitrary ids but the UI does not expose that.
 function loadProfile() {
   const id = rememberedUserId();
   if (!id) return;
@@ -133,8 +111,6 @@ function loadProfile() {
     .catch((err) => toastError('Profile load failed', err));
 }
 
-// ---------- user detail modal ----------
-
 const userModal = $('#user-modal');
 
 $('#users-out').addEventListener('click', (e) => {
@@ -149,9 +125,6 @@ $('#users-out').addEventListener('click', (e) => {
     .catch((err) => toastError('Could not load user', err));
 });
 
-// ---------- forms ----------
-
-// Register
 $('#register-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const form = e.target;
@@ -159,13 +132,10 @@ $('#register-form').addEventListener('submit', (e) => {
     .then((res) => {
       toastOk('Account created', `user #${res.id}`);
       form.reset();
-      // Auto-login is not provided by the API; just send them to the sign-in card.
-      // (No nav change — the auth view already has both side by side.)
     })
     .catch((err) => toastError('Registration failed', err));
 });
 
-// Login
 $('#login-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const form = e.target;
@@ -183,7 +153,6 @@ $('#login-form').addEventListener('submit', (e) => {
     .catch((err) => toastError('Sign-in failed', err));
 });
 
-// Logout (header button)
 $('#logout-btn').addEventListener('click', () => {
   Users.logout()
     .then(() => {
@@ -193,7 +162,6 @@ $('#logout-btn').addEventListener('click', () => {
       routeTo('directory');
     })
     .catch((err) => {
-      // 401 not_logged_in still means we're effectively signed out — clean up.
       if (err && err.status === 401) {
         forgetSession();
         applyAuthState();
@@ -204,19 +172,16 @@ $('#logout-btn').addEventListener('click', () => {
     });
 });
 
-// Directory search
 $('#search-users-form').addEventListener('submit', (e) => {
   e.preventDefault();
   loadUsers(e.target.elements.query.value);
 });
 
-// Events search
 $('#search-events-form').addEventListener('submit', (e) => {
   e.preventDefault();
   loadEvents(e.target.elements.query.value);
 });
 
-// Create event
 $('#create-event-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const form = e.target;
@@ -230,7 +195,6 @@ $('#create-event-form').addEventListener('submit', (e) => {
     .catch((err) => toastError('Could not publish event', err));
 });
 
-// Event delete (event-delegated on the cards container)
 $('#events-out').addEventListener('click', (e) => {
   const btn = e.target.closest('.delete-event-btn');
   if (!btn) return;
@@ -243,7 +207,6 @@ $('#events-out').addEventListener('click', (e) => {
     .catch((err) => toastError('Delete failed', err));
 });
 
-// Profile edit
 $('#edit-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const id = rememberedUserId();
@@ -254,14 +217,12 @@ $('#edit-form').addEventListener('submit', (e) => {
     .catch((err) => toastError('Update failed', err));
 });
 
-// Delete own account
 $('#delete-self-btn').addEventListener('click', () => {
   const id = rememberedUserId();
   if (!id) return;
   if (!confirm(`Delete your account (user #${id})? This cannot be undone.`)) return;
   Users.deleteUser(id)
     .then(() => {
-      // Self-delete clears the server session; mirror locally.
       forgetSession();
       applyAuthState();
       toastOk('Account deleted');
@@ -269,8 +230,6 @@ $('#delete-self-btn').addEventListener('click', () => {
     })
     .catch((err) => toastError('Account deletion failed', err));
 });
-
-// ---------- bootstrap ----------
 
 applyAuthState();
 routeTo(rememberedUserId() ? 'directory' : 'auth');
