@@ -19,6 +19,11 @@ LOGIN_URL  = f"{BASE_URL}/users/login.php"
 LOGOUT_URL = f"{BASE_URL}/users/logout.php"
 DELETE_URL = f"{BASE_URL}/users/delete.php"
 
+EVENT_GET_URL     = f"{BASE_URL}/events/get.php"
+EVENT_GET_ALL_URL = f"{BASE_URL}/events/get_all.php"
+EVENT_POST_URL    = f"{BASE_URL}/events/post.php"
+EVENT_DELETE_URL  = f"{BASE_URL}/events/delete.php"
+
 
 COOKIE_JAR = http.cookiejar.CookieJar()
 urllib.request.install_opener(
@@ -66,6 +71,44 @@ def logout():
 
 def delete(user_id):
     return post_form(DELETE_URL, {"id": user_id})
+
+
+def get_json(url, params=None):
+    if params:
+        url = url + "?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(url, method="GET")
+    try:
+        with urllib.request.urlopen(req) as resp:
+            status, body = resp.status, json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        status, body = e.code, json.loads(e.read())
+    print(f"[{status}] GET {url} -> {json.dumps(body)[:500]}", flush=True)
+    return status, body
+
+
+def event_get(event_id):
+    return get_json(EVENT_GET_URL, {"id": event_id})
+
+
+def event_get_raw(params):
+    # Lets a test send malformed/missing params (no urlencode coercion).
+    return get_json(EVENT_GET_URL, params) if params else get_json(EVENT_GET_URL)
+
+
+def event_get_all(query=None):
+    return get_json(EVENT_GET_ALL_URL, {"query": query} if query is not None else None)
+
+
+def event_create(fields):
+    return post_form(EVENT_POST_URL, fields)
+
+
+def event_delete(event_id):
+    return post_form(EVENT_DELETE_URL, {"id": event_id})
+
+
+def event_delete_raw(fields):
+    return post_form(EVENT_DELETE_URL, fields)
 
 
 def make_png(target_size):
