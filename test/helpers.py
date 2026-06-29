@@ -1,5 +1,6 @@
 import http.cookiejar
 import json
+import os
 import struct
 import time
 import urllib.error
@@ -7,8 +8,12 @@ import urllib.parse
 import urllib.request
 import zlib
 
+from dotenv import dotenv_values
 
-BASE_URL   = "http://localhost/alumni-club/www"
+
+_ENV = dotenv_values(os.path.join(os.path.dirname(__file__), "..", ".env"))
+
+BASE_URL   = _ENV.get("BASE_URL", "http://localhost/alumni-club/www")
 POST_URL   = f"{BASE_URL}/users/post.php"
 LOGIN_URL  = f"{BASE_URL}/users/login.php"
 LOGOUT_URL = f"{BASE_URL}/users/logout.php"
