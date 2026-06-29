@@ -1,7 +1,7 @@
 <?php
 
 class UploadHelper {
-  const UPLOAD_DIR = '/var/www/html/uploads/';
+  const UPLOAD_DIR = __DIR__ . '/../../../uploads/';
   const MAX_BYTES = 65536;
 
   const ALLOWED_MIME_EXT = [
