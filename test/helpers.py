@@ -8,7 +8,7 @@ import urllib.request
 import zlib
 
 
-BASE_URL   = "http://35.208.59.90"
+BASE_URL   = "http://localhost/alumni-club/www"
 POST_URL   = f"{BASE_URL}/users/post.php"
 LOGIN_URL  = f"{BASE_URL}/users/login.php"
 LOGOUT_URL = f"{BASE_URL}/users/logout.php"
