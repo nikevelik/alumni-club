@@ -5,7 +5,7 @@ require_once __DIR__ . '/UploadHelper.php';
 
 class Service {
   const KEY_PROFILE_PICTURE = 'profile_picture';
-  const IMG_PREFIX = '/uploads/';
+  const IMG_PREFIX = '/alumni-club/www/uploads/';
 
   const KEY_NAME = 'name';
   const KEY_EMAIL = 'email';

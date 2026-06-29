@@ -13,7 +13,7 @@ from dotenv import dotenv_values
 
 _ENV = dotenv_values(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
-BASE_URL   = _ENV.get("BASE_URL", "http://localhost/alumni-club/www")
+BASE_URL   = _ENV.get("BASE_URL")
 POST_URL   = f"{BASE_URL}/users/post.php"
 LOGIN_URL  = f"{BASE_URL}/users/login.php"
 LOGOUT_URL = f"{BASE_URL}/users/logout.php"
