@@ -273,4 +273,4 @@ $('#delete-self-btn').addEventListener('click', () => {
 // ---------- bootstrap ----------
 
 applyAuthState();
-routeTo('directory');
+routeTo('auth');
