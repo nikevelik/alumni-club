@@ -4,9 +4,9 @@ import pytest
 
 if __name__ == "__main__":
     sys.exit(pytest.main([
-        #"unit/loginTest.py",
+        "test/unit/loginTest.py",
         "test/unit/registrationTest.py",
-        #"integration/smokeIT.py",
-        #"integration/logoutIT.py",
+        "test/integration/smokeIT.py",
+        "test/integration/logoutIT.py",
         "-v",
     ]))
