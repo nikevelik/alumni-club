@@ -101,7 +101,8 @@ curl http://35.208.59.90/events/get_all.php
 ## POST /events/post.php
 
 Creates a new event. Accepts `application/x-www-form-urlencoded` or
-`multipart/form-data` (i.e. `$_POST`).
+`multipart/form-data` (i.e. `$_POST`). The event's `creator` is taken from the
+authenticated session — clients cannot supply or override it.
 
 **Body Parameters**
 
@@ -110,7 +111,6 @@ Creates a new event. Accepts `application/x-www-form-urlencoded` or
 | date      | string  | yes      | Event date in `YYYY-MM-DD` format           |
 | name      | string  | yes      | Event name                                  |
 | details   | string  | no       | Free-form description                       |
-| creator   | integer | yes      | Creator user id (must reference a real user)|
 
 **Responses**
 
@@ -123,7 +123,7 @@ Creates a new event. Accepts `application/x-www-form-urlencoded` or
 `400 Bad Request` — missing required fields:
 
 ```json
-{ "error": "missing_required_fields", "fields": ["date", "name", "creator"] }
+{ "error": "missing_required_fields", "fields": ["date", "name"] }
 ```
 
 `400 Bad Request` — invalid date format (must be `YYYY-MM-DD`):
@@ -132,13 +132,7 @@ Creates a new event. Accepts `application/x-www-form-urlencoded` or
 { "error": "invalid_date" }
 ```
 
-`400 Bad Request` — creator is not a positive integer:
-
-```json
-{ "error": "invalid_creator" }
-```
-
-`404 Not Found` — creator references a user that does not exist:
+`404 Not Found` — the session's user no longer exists:
 
 ```json
 { "error": "creator_not_found" }
@@ -147,11 +141,10 @@ Creates a new event. Accepts `application/x-www-form-urlencoded` or
 **Example**
 
 ```bash
-curl -X POST http://35.208.59.90/events/post.php \
+curl -b cookies.txt -X POST http://35.208.59.90/events/post.php \
   -d "date=2026-09-15" \
   -d "name=Annual Alumni Reunion" \
-  -d "details=Catered dinner, networking, awards ceremony." \
-  -d "creator=1"
+  -d "details=Catered dinner, networking, awards ceremony."
 ```
 
 ---

@@ -13,12 +13,11 @@ class Service {
   const KEY_QUERY = 'query';
   const KEY_DELETED = 'deleted';
 
-  const REQUIRED_FIELDS = ['date', 'name', 'creator'];
+  const REQUIRED_FIELDS = ['date', 'name'];
   const OPTIONAL_FIELDS = ['details'];
 
   const ERR_MISSING_FIELDS    = 'missing_required_fields';
   const ERR_INVALID_DATE      = 'invalid_date';
-  const ERR_INVALID_CREATOR   = 'invalid_creator';
   const ERR_INVALID_ID        = 'invalid_id';
   const ERR_NOT_FOUND         = 'event_not_found';
   const ERR_CREATOR_NOT_FOUND = 'creator_not_found';
@@ -57,11 +56,12 @@ class Service {
       return $validation;
     }
 
-    if (!Repository::creatorExists((int)$input[self::KEY_CREATOR])) {
+    // Creator is bound to the authenticated session — clients cannot spoof it.
+    if (!Repository::creatorExists($current_user_id)) {
       return self::error(self::ERR_CREATOR_NOT_FOUND);
     }
 
-    $event = self::buildNewEvent($input);
+    $event = self::buildNewEvent($input, $current_user_id);
     $id = Repository::create($event);
     return [self::KEY_ID => (int)$id];
   }
@@ -123,20 +123,14 @@ class Service {
         return self::error(self::ERR_INVALID_DATE);
       }
     }
-
-    if (isset($input[self::KEY_CREATOR]) && $input[self::KEY_CREATOR] !== '') {
-      if (!is_numeric($input[self::KEY_CREATOR]) || (int)$input[self::KEY_CREATOR] <= 0) {
-        return self::error(self::ERR_INVALID_CREATOR);
-      }
-    }
     return null;
   }
 
-  private static function buildNewEvent($input) {
+  private static function buildNewEvent($input, $current_user_id) {
     $event = [
       self::KEY_DATE    => $input[self::KEY_DATE],
       self::KEY_NAME    => $input[self::KEY_NAME],
-      self::KEY_CREATOR => (int)$input[self::KEY_CREATOR],
+      self::KEY_CREATOR => (int)$current_user_id,
     ];
     foreach (self::OPTIONAL_FIELDS as $field) {
       $event[$field] = isset($input[$field]) && $input[$field] !== '' ? $input[$field] : null;
