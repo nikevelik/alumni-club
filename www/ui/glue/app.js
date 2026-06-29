@@ -29,7 +29,7 @@ function renderSession() {
   const id = rememberedUserId();
   document.getElementById('session-status').textContent = id
     ? `logged in as user #${id}`
-    : 'not logged in (cookie may still be valid — try any call)';
+    : 'not logged in';
 }
 
 // ---------- Registration ----------
