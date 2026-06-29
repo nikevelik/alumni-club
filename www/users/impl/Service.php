@@ -5,7 +5,10 @@ require_once __DIR__ . '/UploadHelper.php';
 
 class Service {
   const KEY_PROFILE_PICTURE = 'profile_picture';
-  const IMG_PREFIX = '/alumni-club/www/uploads/';
+
+  private static function imgPrefix() {
+    return dirname($_SERVER['SCRIPT_NAME'], 3) . '/uploads/';
+  }
 
   const KEY_NAME = 'name';
   const KEY_EMAIL = 'email';
@@ -239,7 +242,7 @@ class Service {
 
   private static function decorateUser($user) {
     if (!empty($user) && !empty($user[self::KEY_PROFILE_PICTURE])) {
-      $user[self::KEY_PROFILE_PICTURE] = self::IMG_PREFIX . $user[self::KEY_PROFILE_PICTURE];
+      $user[self::KEY_PROFILE_PICTURE] = self::imgPrefix() . $user[self::KEY_PROFILE_PICTURE];
     }
     return $user;
   }
