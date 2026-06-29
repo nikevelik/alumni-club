@@ -19,9 +19,6 @@ class Controller {
   const HTTP_INTERNAL_ERROR = 500;
   const ERR_INTERNAL = 'internal_error';
 
-  // Resolved once per request from $_SESSION. 0 means "no active session".
-  // Every public method on this controller is auth-gated — the request is
-  // rejected with 401 not_logged_in before reaching the service if 0.
   private $current_user_id;
 
   public function __construct() {
@@ -53,10 +50,6 @@ class Controller {
     }, self::HTTP_OK);
   }
 
-  // ---------- internals ----------
-
-  // Auth-gated wrapper. Returns 401 not_logged_in immediately if there is
-  // no active session, never reaching the service.
   private function respondAuthenticated($action, $okStatus) {
     if ($this->current_user_id <= 0) {
       http_response_code(self::HTTP_UNAUTHORIZED);

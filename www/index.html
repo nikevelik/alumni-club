@@ -7,11 +7,9 @@
   <link rel="stylesheet" href="ui/style/styles.css">
 </head>
 <body>
-  <!-- Toasts: transient feedback, rendered top-right. JS appends/removes nodes. -->
   <div id="toast-host" class="toast-host" aria-live="polite" aria-atomic="true"></div>
 
   <div class="app" data-route="auth">
-    <!-- ============== Header ============== -->
     <header class="app-header">
       <div class="brand">
         <span class="brand-mark">AC</span>
@@ -23,7 +21,6 @@
       </div>
     </header>
 
-    <!-- ============== Sidebar ============== -->
     <nav class="app-nav" aria-label="Sections">
       <button type="button" class="nav-item" data-route="directory">
         <span class="nav-ico">👥</span> Directory
@@ -39,10 +36,8 @@
       </button>
     </nav>
 
-    <!-- ============== Content ============== -->
     <main class="app-main">
 
-      <!-- ---------- Directory ---------- -->
       <section class="view" data-view="directory">
         <header class="view-head">
           <h2>Directory</h2>
@@ -55,7 +50,6 @@
         <div id="users-out" class="card-grid"></div>
       </section>
 
-      <!-- ---------- Events ---------- -->
       <section class="view is-hidden" data-view="events">
         <header class="view-head">
           <h2>Events</h2>
@@ -81,7 +75,6 @@
         <div id="events-out" class="card-grid"></div>
       </section>
 
-      <!-- ---------- Profile ---------- -->
       <section class="view is-hidden" data-view="profile">
         <header class="view-head">
           <h2>Profile</h2>
@@ -108,7 +101,6 @@
         </form>
       </section>
 
-      <!-- ---------- Auth (Sign in / Register) ---------- -->
       <section class="view is-hidden" data-view="auth">
         <header class="view-head">
           <h2>Welcome</h2>
@@ -152,7 +144,6 @@
     </main>
   </div>
 
-  <!-- ============== User detail modal ============== -->
   <dialog id="user-modal" class="modal">
     <div id="user-modal-body"></div>
     <form method="dialog" class="modal-actions"><button class="btn btn-ghost">Close</button></form>

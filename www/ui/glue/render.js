@@ -1,5 +1,3 @@
-// HTML rendering helpers. Everything user-supplied flows through escapeHtml.
-
 export function escapeHtml(s) {
   if (s === null || s === undefined) return '';
   return String(s)

@@ -1,8 +1,3 @@
-// Mirror of the server-side session: PHP holds the source of truth in an
-// HttpOnly cookie (PHPSESSID) so JS can't read it. We mirror the user's id in
-// localStorage on login/logout. This is purely for UI ("am I logged in?"),
-// never for authorization — every protected call relies on the cookie.
-
 const KEY = 'alumni_session_user_id';
 
 export function rememberSession(userId) {

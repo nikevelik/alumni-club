@@ -1,5 +1,3 @@
-// Toast notifications. Append a node into #toast-host, auto-remove after a
-// timeout. No external dependencies; styling lives in styles.css.
 
 const HOST_ID = 'toast-host';
 const DEFAULT_TTL = 3500;
@@ -54,7 +52,6 @@ function push({ kind, title, detail }) {
 export function toastOk(title, detail) { push({ kind: 'ok', title, detail }); }
 export function toastInfo(title, detail) { push({ kind: 'info', title, detail }); }
 
-// Pretty-print ApiError-shaped failures. Falls back to raw text otherwise.
 export function toastError(title, err) {
   let detail = '';
   if (err && err.name === 'ApiError') {
